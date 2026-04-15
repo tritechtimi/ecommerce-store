@@ -3,309 +3,317 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Admin Studio + Debug | PrimeCart</title>
+  <title>Admin Studio | PrimeCart</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Inter', sans-serif;
+    /* admin-specific overrides */
+    .admin-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
     }
-    body {
-      background: #f8fafc;
-      padding: 20px;
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 2rem;
     }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
+    @media (max-width: 768px) {
+      .admin-grid { grid-template-columns: 1fr; }
     }
-    .card {
+    .form-card, .list-card {
       background: white;
       border-radius: 28px;
       padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      border: 1px solid #e2e8f0;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+      border: 1px solid #eef2f8;
     }
-    h2 {
-      font-size: 1.4rem;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    body.dark .form-card, body.dark .list-card {
+      background: #1e293b;
+      border-color: #334155;
     }
-    input, textarea, button {
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      font-size: 0.85rem;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      border: 1.5px solid #e2e8f0;
+      background: #ffffff;
+    }
+    body.dark input, body.dark textarea {
+      background: #0f172a;
+      border-color: #334155;
+      color: white;
+    }
+    .file-hint {
+      font-size: 0.7rem;
+      color: #6c86a3;
+      margin-top: 4px;
+    }
+    .btn-submit {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
       width: 100%;
       padding: 12px;
-      margin: 8px 0;
-      border-radius: 16px;
-      border: 1px solid #cbd5e1;
-      font-size: 1rem;
-    }
-    button {
-      background: #2563eb;
-      color: white;
-      font-weight: 600;
       border: none;
+      border-radius: 40px;
+      color: white;
+      font-weight: 700;
       cursor: pointer;
+    }
+    .product-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .product-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 20px;
       transition: 0.2s;
     }
-    button:active { transform: scale(0.97); }
-    .debug-panel {
-      background: #1e1e2f;
-      color: #f1f5f9;
-      border-radius: 20px;
-      padding: 1rem;
-      font-family: monospace;
-      font-size: 12px;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
+    body.dark .product-item {
+      background: #111827;
     }
-    .debug-title {
-      font-weight: 700;
-      margin-bottom: 8px;
-      color: #94a3b8;
+    .product-item:hover {
+      border-left: 4px solid #2563eb;
     }
-    .log-entry {
-      border-top: 1px solid #334155;
-      padding: 6px 0;
-    }
-    .success { color: #4ade80; }
-    .error { color: #f87171; }
-    .info { color: #60a5fa; }
-    .flex {
+    .product-info {
       display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
     }
-    .test-btn {
-      background: #475569;
-      flex: 1;
+    .product-thumb {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #e2e8f0;
     }
-    @media (max-width: 600px) {
-      body { padding: 12px; }
-      .card { padding: 1rem; }
+    .delete-product {
+      background: #ef4444;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 40px;
+      color: white;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-<div class="container">
-  <!-- Product Form -->
-  <div class="card">
-    <h2>➕ Add New Product</h2>
-    <input type="text" id="prodName" placeholder="Product name *" autocomplete="off">
-    <input type="number" id="prodPrice" placeholder="Price (₦) *">
-    <textarea id="prodDesc" rows="3" placeholder="Description"></textarea>
-    <input type="file" id="prodImage" accept="image/jpeg,image/png,image/webp">
-    <button id="saveBtn">💾 Publish Product</button>
-  </div>
-
-  <!-- Test Tools -->
-  <div class="card">
-    <h2>🧪 Test Insert (hardcoded)</h2>
-    <div class="flex">
-      <button id="testSimpleBtn" class="test-btn">Test: Simple Product</button>
-      <button id="testWithSlugBtn" class="test-btn">Test: Full Fields</button>
+  <nav class="nav">
+    <div class="nav-logo">
+      <span class="logo-mark">🎨</span> Admin Studio
     </div>
-    <p style="font-size:12px; color:#475569; margin-top:10px;">Click to test insert without image upload – helps isolate RLS/permission errors.</p>
-  </div>
-
-  <!-- Debug Console (on-screen) -->
-  <div class="card">
-    <h2>🐞 Debug Console</h2>
-    <div class="debug-panel" id="debugPanel">
-      <div class="log-entry info">📡 Waiting for action...</div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Storefront</a></li>
+      <li><a href="#" class="active-nav">Inventory</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn theme-toggle" id="adminThemeBtn">🌙</button>
+      <button class="hamburger" id="adminHamburger">☰</button>
     </div>
-    <button id="clearDebugBtn" style="background:#334155; margin-top:10px;">Clear Log</button>
+  </nav>
+
+  <div class="admin-container">
+    <div class="admin-grid">
+      <!-- Add Product Form -->
+      <div class="form-card">
+        <h2 style="margin-bottom: 1rem;">➕ Add New Product</h2>
+        <div class="form-group">
+          <label>Product name *</label>
+          <input type="text" id="prodName" placeholder="e.g., Wireless Headphones">
+        </div>
+        <div class="form-group">
+          <label>Price (₦) *</label>
+          <input type="number" id="prodPrice" placeholder="29900">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="prodDesc" rows="3" placeholder="Describe the product..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Product Image</label>
+          <input type="file" id="prodImage" accept="image/jpeg,image/png,image/webp">
+          <div class="file-hint">JPG, PNG or WEBP (max 2MB). Will be stored in "product-images" bucket.</div>
+        </div>
+        <button class="btn-submit" id="saveProductBtn">✨ Publish Product</button>
+      </div>
+
+      <!-- Product List -->
+      <div class="list-card">
+        <h2 style="margin-bottom: 1rem;">📦 Manage Products</h2>
+        <div id="adminProductList" class="product-list">
+          <div class="loader-shimmer">Loading products...</div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 
-<script type="module">
-  import { supabase } from "./supabase.js";
+  <footer class="footer">
+    <p>PrimeCart Admin · Seamless product orchestration</p>
+  </footer>
 
-  // DOM elements
-  const nameInput = document.getElementById('prodName');
-  const priceInput = document.getElementById('prodPrice');
-  const descInput = document.getElementById('prodDesc');
-  const imageFile = document.getElementById('prodImage');
-  const saveBtn = document.getElementById('saveBtn');
-  const debugDiv = document.getElementById('debugPanel');
-  const clearBtn = document.getElementById('clearDebugBtn');
+  <script type="module">
+    import { supabase } from "./supabase.js";
 
-  // ----- Debug Logger (adds to screen) -----
-  function addLog(message, type = 'info') {
-    const entry = document.createElement('div');
-    entry.className = `log-entry ${type}`;
-    const timestamp = new Date().toLocaleTimeString();
-    entry.innerHTML = `[${timestamp}] ${message}`;
-    debugDiv.appendChild(entry);
-    entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    // also log to console
-    if (type === 'error') console.error(message);
-    else console.log(message);
-  }
+    const nameInput = document.getElementById("prodName");
+    const priceInput = document.getElementById("prodPrice");
+    const descInput = document.getElementById("prodDesc");
+    const imageFile = document.getElementById("prodImage");
+    const saveBtn = document.getElementById("saveProductBtn");
+    const listContainer = document.getElementById("adminProductList");
 
-  function clearLog() {
-    debugDiv.innerHTML = '';
-    addLog('🧹 Log cleared', 'info');
-  }
-  clearBtn.addEventListener('click', clearLog);
+    // Helper: upload image to Supabase Storage
+    async function uploadProductImage(file, slug) {
+      if (!file) return null;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${slug}-${Date.now()}.${fileExt}`;
+      const filePath = `public/${fileName}`;
 
-  // ----- Helper: upload image to Supabase storage (product-images bucket) -----
-  async function uploadImage(file, slug) {
-    if (!file) return null;
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${slug}-${Date.now()}.${fileExt}`;
-    const filePath = `public/${fileName}`;
-    
-    addLog(`⬆️ Uploading image: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'info');
-    const { data, error } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, file, { cacheControl: '3600', upsert: false });
-    
-    if (error) {
-      addLog(`❌ Image upload failed: ${error.message}`, 'error');
-      throw error;
-    }
-    const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(filePath);
-    addLog(`✅ Image uploaded, public URL: ${publicUrlData.publicUrl}`, 'success');
-    return publicUrlData.publicUrl;
-  }
-
-  // ----- Main insert function (with optional image) -----
-  async function insertProduct(productData) {
-    addLog(`🚀 Attempting insert: ${JSON.stringify(productData)}`, 'info');
-    const { data, error } = await supabase
-      .from('products')
-      .insert([productData])
-      .select();  // try to return inserted row
-
-    if (error) {
-      addLog(`❌ SUPABASE ERROR: ${error.message}`, 'error');
-      addLog(`🔍 Full error object: ${JSON.stringify(error, null, 2)}`, 'error');
-      return false;
-    }
-    addLog(`✅ SUCCESS! Inserted product: ${JSON.stringify(data)}`, 'success');
-    return true;
-  }
-
-  // ----- Form submit handler (with image upload) -----
-  async function handleAddProduct() {
-    const name = nameInput.value.trim();
-    const price = priceInput.value.trim();
-    const description = descInput.value.trim();
-    const imageFileObj = imageFile.files[0];
-
-    if (!name || !price) {
-      addLog('⚠️ Product name and price are required', 'error');
-      alert('Please fill product name and price');
-      return;
-    }
-    const priceNum = Number(price);
-    if (isNaN(priceNum) || priceNum <= 0) {
-      addLog('⚠️ Invalid price value', 'error');
-      return;
-    }
-
-    const slugBase = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const finalSlug = slugBase || 'product-' + Date.now();
-
-    saveBtn.disabled = true;
-    saveBtn.textContent = '⏳ Processing...';
-    addLog(`📦 Preparing product: "${name}" | slug: ${finalSlug}`, 'info');
-
-    try {
-      let imageUrl = null;
-      if (imageFileObj) {
-        if (imageFileObj.size > 2 * 1024 * 1024) throw new Error('Image > 2MB');
-        imageUrl = await uploadImage(imageFileObj, finalSlug);
-      }
-
-      const productToInsert = {
-        name: name,
-        price: priceNum,
-        description: description || '',
-        slug: finalSlug,
-        is_active: true,
-        image_url: imageUrl
-      };
-
-      const success = await insertProduct(productToInsert);
-      if (success) {
-        // reset form
-        nameInput.value = '';
-        priceInput.value = '';
-        descInput.value = '';
-        imageFile.value = '';
-        addLog('🎉 Form reset – ready for next product', 'success');
-      }
-    } catch (err) {
-      addLog(`🔥 UNEXPECTED ERROR: ${err.message}`, 'error');
-    } finally {
-      saveBtn.disabled = false;
-      saveBtn.textContent = '💾 Publish Product';
-    }
-  }
-
-  // ----- Test: Simple product (minimal fields, no image) -----
-  async function testSimpleInsert() {
-    const testName = `Test ${new Date().toLocaleTimeString()}`;
-    const testSlug = `test-${Date.now()}`;
-    const testProduct = {
-      name: testName,
-      price: 99,
-      description: 'Debug insert – minimal fields',
-      slug: testSlug,
-      is_active: true
-    };
-    addLog(`🧪 TEST 1: Inserting minimal product`, 'info');
-    await insertProduct(testProduct);
-  }
-
-  // ----- Test: Full fields (no image) -----
-  async function testFullInsert() {
-    const testName = `FullTest ${Date.now()}`;
-    const testSlug = `full-${Date.now()}`;
-    const testProduct = {
-      name: testName,
-      price: 299,
-      description: 'Full fields test with image_url null',
-      slug: testSlug,
-      is_active: true,
-      image_url: null
-    };
-    addLog(`🧪 TEST 2: Inserting full product (null image_url)`, 'info');
-    await insertProduct(testProduct);
-  }
-
-  // ----- Attach event listeners -----
-  saveBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    handleAddProduct();
-  });
-  document.getElementById('testSimpleBtn').addEventListener('click', (e) => {
-    e.preventDefault();
-    testSimpleInsert();
-  });
-  document.getElementById('testWithSlugBtn').addEventListener('click', (e) => {
-    e.preventDefault();
-    testFullInsert();
-  });
-
-  // ----- Show Supabase connection status on load -----
-  async function checkConnection() {
-    addLog('🔌 Testing Supabase connection...', 'info');
-    try {
-      const { data, error } = await supabase.from('products').select('count', { count: 'exact', head: true });
+      const { error } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
       if (error) throw error;
-      addLog(`✅ Supabase reachable. Products table exists.`, 'success');
-    } catch (err) {
-      addLog(`⚠️ Cannot reach Supabase or products table: ${err.message}`, 'error');
+
+      const { data: publicUrlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+      return publicUrlData.publicUrl;
     }
-  }
-  checkConnection();
-</script>
+
+    // Add product
+    async function addProduct() {
+      const name = nameInput.value.trim();
+      const price = priceInput.value.trim();
+      const description = descInput.value.trim();
+      const file = imageFile.files[0];
+
+      if (!name || !price) {
+        alert("Product name and price are required.");
+        return;
+      }
+      const priceNum = Number(price);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        alert("Invalid price.");
+        return;
+      }
+
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `product-${Date.now()}`;
+      saveBtn.disabled = true;
+      saveBtn.textContent = "⏳ Uploading...";
+
+      try {
+        let imageUrl = null;
+        if (file) {
+          if (file.size > 2 * 1024 * 1024) throw new Error("Image too large (max 2MB)");
+          imageUrl = await uploadProductImage(file, slug);
+        }
+
+        const { error } = await supabase.from("products").insert([
+          { name, price: priceNum, description, slug, is_active: true, image_url: imageUrl }
+        ]);
+        if (error) throw error;
+
+        alert("✅ Product added successfully!");
+        nameInput.value = "";
+        priceInput.value = "";
+        descInput.value = "";
+        imageFile.value = "";
+        await fetchProducts();
+      } catch (err) {
+        alert("Error: " + err.message);
+        console.error(err);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "✨ Publish Product";
+      }
+    }
+
+    // Fetch & display products
+    async function fetchProducts() {
+      try {
+        listContainer.innerHTML = `<div class="loader-shimmer">Loading...</div>`;
+        const { data, error } = await supabase.from("products").select("*").order("id", { ascending: false });
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          listContainer.innerHTML = `<p style="text-align:center;">No products yet. Add your first one.</p>`;
+          return;
+        }
+
+        listContainer.innerHTML = "";
+        data.forEach(prod => {
+          const div = document.createElement("div");
+          div.className = "product-item";
+          const thumb = prod.image_url || "https://placehold.co/50x50?text=No+Img";
+          div.innerHTML = `
+            <div class="product-info">
+              <img src="${thumb}" class="product-thumb" onerror="this.src='https://placehold.co/50x50?text=Error'">
+              <div>
+                <strong>${escapeHtml(prod.name)}</strong>
+                <div>₦${Number(prod.price).toLocaleString()}</div>
+              </div>
+            </div>
+            <button class="delete-product" data-id="${prod.id}">Delete</button>
+          `;
+          listContainer.appendChild(div);
+        });
+
+        document.querySelectorAll(".delete-product").forEach(btn => {
+          btn.addEventListener("click", async (e) => {
+            const id = btn.getAttribute("data-id");
+            if (confirm("Delete this product permanently?")) {
+              const { error } = await supabase.from("products").delete().eq("id", id);
+              if (error) alert("Delete failed: " + error.message);
+              else fetchProducts();
+            }
+          });
+        });
+      } catch (err) {
+        listContainer.innerHTML = `<div class="error-state">⚠️ Failed to load products.</div>`;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+
+    // Theme & mobile menu
+    function setThemeIcon() {
+      const isDark = document.body.classList.contains("dark");
+      const btn = document.getElementById("adminThemeBtn");
+      if (btn) btn.textContent = isDark ? "☀️" : "🌙";
+    }
+    window.toggleThemeAdmin = () => {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light");
+      setThemeIcon();
+    };
+    const savedTheme = localStorage.getItem("primecart_theme");
+    if (savedTheme === "dark") document.body.classList.add("dark");
+    setThemeIcon();
+    document.getElementById("adminThemeBtn")?.addEventListener("click", () => window.toggleThemeAdmin());
+
+    window.toggleAdminMenu = () => document.getElementById("navLinks").classList.toggle("active");
+    document.getElementById("adminHamburger")?.addEventListener("click", () => window.toggleAdminMenu());
+    document.querySelectorAll(".nav-links a").forEach(link => {
+      link.addEventListener("click", () => document.getElementById("navLinks")?.classList.remove("active"));
+    });
+
+    saveBtn.addEventListener("click", addProduct);
+    fetchProducts();
+  </script>
 </body>
 </html>
