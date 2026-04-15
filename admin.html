@@ -1,131 +1,435 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Admin Dashboard</title>
-<link rel="stylesheet" href="style.css"/>
-</head>
-
-<body class="dark">
-
-<nav class="nav">
-  <div class="nav-logo">🛠 Admin Panel</div>
-  <button class="hamburger" onclick="toggleMenu()">☰</button>
-</nav>
-
-<div class="container">
-
-  <h2>Create Product</h2>
-
-  <input id="name" placeholder="Product name"/>
-  <input id="price" type="number" placeholder="Price"/>
-  <textarea id="desc" placeholder="Description"></textarea>
-
-  <!-- IMAGE INPUT -->
-  <input type="file" id="image" accept="image/*"/>
-
-  <button onclick="addProduct()">Save Product</button>
-
-  <hr/>
-
-  <h2>Products</h2>
-  <div id="list"></div>
-
-</div>
-
-<script type="module">
-import { supabase } from "./supabase.js";
-
-/* =========================
-UPLOAD IMAGE TO SUPABASE
-========================= */
-async function uploadImage(file) {
-  const fileName = Date.now() + "-" + file.name;
-
-  const { data, error } = await supabase.storage
-    .from("products")
-    .upload(fileName, file);
-
-  if (error) {
-    console.log(error);
-    return null;
-  }
-
-  const { data: urlData } = supabase.storage
-    .from("products")
-    .getPublicUrl(fileName);
-
-  return urlData.publicUrl;
-}
-
-/* =========================
-ADD PRODUCT
-========================= */
-window.addProduct = async function () {
-  const name = document.getElementById("name").value;
-  const price = document.getElementById("price").value;
-  const desc = document.getElementById("desc").value;
-  const imageFile = document.getElementById("image").files[0];
-
-  if (!name || !price) {
-    alert("Fill required fields");
-    return;
-  }
-
-  let imageUrl = "";
-
-  if (imageFile) {
-    imageUrl = await uploadImage(imageFile);
-  }
-
-  const slug = name.toLowerCase().replace(/\s+/g, "-");
-
-  const { error } = await supabase.from("products").insert([
-    {
-      name,
-      price,
-      description: desc,
-      slug,
-      image_url: imageUrl
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Admin Studio | PrimeCart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-dashboard {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
     }
-  ]);
+    .admin-split {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+    .form-card, .product-manager-card {
+      background: var(--card-bg, white);
+      border-radius: 28px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05);
+      border: 1px solid var(--border-color, #eef2f6);
+      overflow: hidden;
+    }
+    body.dark .form-card, body.dark .product-manager-card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+    .card-header {
+      padding: 1.25rem 1.8rem;
+      background: rgba(37, 99, 235, 0.03);
+      border-bottom: 1px solid var(--border-color, #eef2f6);
+      font-weight: 700;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .form-body, .list-body {
+      padding: 1.8rem;
+    }
+    .input-group {
+      margin-bottom: 1.2rem;
+    }
+    .input-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      color: #4b5563;
+    }
+    body.dark .input-group label {
+      color: #cbd5e1;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      border: 1.5px solid #e2e8f0;
+      background: #ffffff;
+      transition: 0.2s;
+      font-size: 0.95rem;
+    }
+    body.dark input, body.dark textarea, body.dark select {
+      background: #0f172a;
+      border-color: #334155;
+      color: #f1f5f9;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+    }
+    .file-hint {
+      font-size: 0.7rem;
+      color: #6c86a3;
+      margin-top: 5px;
+    }
+    .btn-save {
+      background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+      border: none;
+      padding: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      border-radius: 40px;
+      transition: transform 0.1s ease;
+      cursor: pointer;
+      color: white;
+      width: 100%;
+    }
+    .btn-save:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .product-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--row-bg, #f9fafb);
+      padding: 12px 18px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    body.dark .product-row {
+      background: #111827;
+      border-color: #2d3a4e;
+    }
+    .product-row:hover {
+      border-color: #2563eb;
+      transform: translateX(4px);
+    }
+    .product-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+    }
+    .product-name {
+      font-weight: 700;
+    }
+    .product-price {
+      font-size: 0.85rem;
+      color: #2563eb;
+      font-weight: 600;
+    }
+    .product-thumb {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-right: 15px;
+      background: #e2e8f0;
+    }
+    .delete-btn {
+      background: none;
+      border: 1px solid #ef444430;
+      color: #ef4444;
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      width: auto;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      background: #ef4444;
+      color: white;
+    }
+    .loader-shimmer {
+      background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s linear infinite;
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    @media (max-width: 640px) {
+      .product-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .product-thumb {
+        margin-bottom: 10px;
+      }
+      .delete-btn {
+        align-self: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">
+      <span class="logo-mark">🎨</span> Admin Studio
+    </div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Storefront</a></li>
+      <li><a href="#" class="active-nav">Inventory</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn theme-toggle" id="adminThemeBtn">🌙</button>
+      <button class="hamburger" id="adminHamburger">☰</button>
+    </div>
+  </nav>
 
-  if (error) {
-    alert(error.message);
-  } else {
-    alert("Product added!");
-    loadProducts();
-  }
-};
-
-/* =========================
-LOAD PRODUCTS
-========================= */
-async function loadProducts() {
-  const { data } = await supabase.from("products").select("*");
-
-  const list = document.getElementById("list");
-  list.innerHTML = "";
-
-  data.forEach(p => {
-    list.innerHTML += `
-      <div style="border:1px solid #444;padding:10px;margin:10px;border-radius:10px">
-        <img src="${p.image_url}" style="width:100px;height:100px;object-fit:cover"/>
-        <h3>${p.name}</h3>
-        <p>₦${p.price}</p>
+  <div class="admin-dashboard">
+    <div class="admin-split">
+      <!-- ADD PRODUCT CARD with IMAGE UPLOAD -->
+      <div class="form-card">
+        <div class="card-header">
+          ✨ Add new masterpiece <span>creative studio</span>
+        </div>
+        <div class="form-body">
+          <div class="input-group">
+            <label>Product name *</label>
+            <input type="text" id="prodName" placeholder="e.g., Minimalist Leather Backpack">
+          </div>
+          <div class="input-group">
+            <label>Price (₦) *</label>
+            <input type="number" id="prodPrice" placeholder="49900">
+          </div>
+          <div class="input-group">
+            <label>Description</label>
+            <textarea id="prodDesc" rows="3" placeholder="Premium materials, eco-friendly design..."></textarea>
+          </div>
+          <div class="input-group">
+            <label>Product Image</label>
+            <input type="file" id="prodImage" accept="image/jpeg,image/png,image/webp">
+            <div class="file-hint">Upload JPG, PNG or WEBP (max 2MB). Image will be stored in "product-images" bucket.</div>
+          </div>
+          <button class="btn-save" id="saveProductBtn">➕ Publish product</button>
+        </div>
       </div>
-    `;
-  });
-}
 
-loadProducts();
+      <!-- PRODUCT LIST with images -->
+      <div class="product-manager-card">
+        <div class="card-header">
+          📦 Manage catalog <span>real-time sync</span>
+        </div>
+        <div class="list-body">
+          <div id="adminProductList" class="product-table">
+            <div class="loader-shimmer">Loading inventory...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-/* MENU */
-window.toggleMenu = function(){
-  alert("Menu clicked");
-};
-</script>
+  <footer class="footer" style="margin-top: 3rem;">
+    <p>PrimeCart Admin · Seamless product orchestration</p>
+  </footer>
 
+  <script type="module">
+    import { supabase } from "./supabase.js";
+
+    const nameInput = document.getElementById("prodName");
+    const priceInput = document.getElementById("prodPrice");
+    const descInput = document.getElementById("prodDesc");
+    const imageFileInput = document.getElementById("prodImage");
+    const saveBtn = document.getElementById("saveProductBtn");
+    const adminListContainer = document.getElementById("adminProductList");
+
+    // ---------- Helper: upload image to Supabase Storage ----------
+    async function uploadProductImage(file, productSlug) {
+      if (!file) return null;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${productSlug}-${Date.now()}.${fileExt}`;
+      const filePath = `public/${fileName}`; // store inside "product-images" bucket under /public
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error("Upload error:", error);
+        throw new Error(error.message);
+      }
+
+      // get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+      
+      return publicUrlData.publicUrl;
+    }
+
+    // ---------- Add product with image ----------
+    async function addProductWithImage() {
+      const name = nameInput.value.trim();
+      const price = priceInput.value.trim();
+      const description = descInput.value.trim();
+      const imageFile = imageFileInput.files[0];
+
+      if (!name || !price) {
+        alert("❌ Product name and price are required.");
+        return;
+      }
+      const priceNum = Number(price);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        alert("Please enter a valid price.");
+        return;
+      }
+
+      // generate slug for filename
+      const slugBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const finalSlug = slugBase || "product-" + Date.now();
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "⏳ Uploading & saving...";
+
+      try {
+        let imageUrl = null;
+        if (imageFile) {
+          // check file size (2MB limit)
+          if (imageFile.size > 2 * 1024 * 1024) {
+            throw new Error("Image too large. Max 2MB.");
+          }
+          imageUrl = await uploadProductImage(imageFile, finalSlug);
+        }
+
+        const { error } = await supabase.from("products").insert([
+          {
+            name: name,
+            price: priceNum,
+            description: description || "",
+            slug: finalSlug,
+            is_active: true,
+            image_url: imageUrl
+          }
+        ]);
+
+        if (error) throw error;
+
+        alert("🎉 Product added successfully with image!");
+        nameInput.value = "";
+        priceInput.value = "";
+        descInput.value = "";
+        imageFileInput.value = "";
+        await fetchAndRenderAdminProducts();
+      } catch (err) {
+        alert("Error: " + err.message);
+        console.error(err);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "➕ Publish product";
+      }
+    }
+
+    // ---------- Fetch & render admin list (with images) ----------
+    async function fetchAndRenderAdminProducts() {
+      try {
+        adminListContainer.innerHTML = `<div class="loader-shimmer">⏳ fetching products...</div>`;
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .order("id", { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          adminListContainer.innerHTML = `<div class="empty-state">✨ No products yet. Add your first creation above.</div>`;
+          return;
+        }
+
+        adminListContainer.innerHTML = "";
+        data.forEach(product => {
+          const row = document.createElement("div");
+          row.className = "product-row";
+          row.dataset.id = product.id;
+          const thumbUrl = product.image_url || "https://placehold.co/60x60?text=No+Img";
+          row.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px; flex:1;">
+              <img src="${escapeHtml(thumbUrl)}" class="product-thumb" onerror="this.src='https://placehold.co/60x60?text=Error'">
+              <div class="product-info">
+                <div class="product-name">${escapeHtml(product.name)}</div>
+                <div class="product-price">₦${Number(product.price).toLocaleString()}</div>
+                <div class="product-desc-sm" style="font-size:0.7rem; color:gray;">${escapeHtml(product.description?.slice(0, 60) || "no description")}</div>
+              </div>
+            </div>
+            <button class="delete-btn" data-id="${product.id}">🗑 Delete</button>
+          `;
+          adminListContainer.appendChild(row);
+        });
+
+        document.querySelectorAll(".delete-btn").forEach(btn => {
+          btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const productId = btn.getAttribute("data-id");
+            if (confirm("Permanently remove this product?")) {
+              const { error } = await supabase.from("products").delete().eq("id", productId);
+              if (error) alert("Delete failed: " + error.message);
+              else await fetchAndRenderAdminProducts();
+            }
+          });
+        });
+      } catch (err) {
+        console.error(err);
+        adminListContainer.innerHTML = `<div class="error-state">⚠️ Failed to load products. Check Supabase.</div>`;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    // Theme & menu same as store
+    function setAdminThemeIcon() {
+      const isDark = document.body.classList.contains("dark");
+      const themeBtn = document.getElementById("adminThemeBtn");
+      if (themeBtn) themeBtn.textContent = isDark ? "☀️" : "🌙";
+    }
+    window.toggleThemeAdmin = function() {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light");
+      setAdminThemeIcon();
+    };
+    const savedThemeGlobal = localStorage.getItem("primecart_theme");
+    if (savedThemeGlobal === "dark") document.body.classList.add("dark");
+    setAdminThemeIcon();
+    document.getElementById("adminThemeBtn")?.addEventListener("click", () => window.toggleThemeAdmin());
+
+    window.toggleAdminMenu = function() {
+      document.getElementById("navLinks").classList.toggle("active");
+    };
+    document.getElementById("adminHamburger")?.addEventListener("click", () => window.toggleAdminMenu());
+    document.querySelectorAll(".nav-links a").forEach(link => {
+      link.addEventListener("click", () => document.getElementById("navLinks")?.classList.remove("active"));
+    });
+
+    saveBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      addProductWithImage();
+    });
+
+    fetchAndRenderAdminProducts();
+  </script>
 </body>
 </html>
