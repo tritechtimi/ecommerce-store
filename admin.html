@@ -1,17 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Admin - PrimeCart</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<nav>
+<nav class="nav">
   <div class="nav-logo">Admin Panel</div>
 </nav>
 
-<div class="admin-container">
+<section class="admin-container">
 
   <h2>Add Product</h2>
 
@@ -21,7 +25,7 @@
 
   <button onclick="addProduct()">Save Product</button>
 
-</div>
+</section>
 
 <script type="module">
 import { supabase } from "./supabase.js";
@@ -32,14 +36,33 @@ window.addProduct = async function () {
   const price = document.getElementById("price").value;
   const desc = document.getElementById("desc").value;
 
+  if (!name || !price) {
+    alert("Fill required fields");
+    return;
+  }
+
+  const slug = name.toLowerCase().replace(/\s+/g, "-");
+
   const { error } = await supabase
     .from("products")
-    .insert([{ name, price, description: desc }]);
+    .insert([
+      {
+        name,
+        price: Number(price),
+        description: desc,
+        slug,
+        is_active: true
+      }
+    ]);
 
   if (error) {
     alert(error.message);
+    console.log(error);
   } else {
-    alert("Product added!");
+    alert("Product added successfully!");
+    document.getElementById("name").value = "";
+    document.getElementById("price").value = "";
+    document.getElementById("desc").value = "";
   }
 };
 </script>
