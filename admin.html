@@ -2,269 +2,129 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Admin Studio | PrimeCart</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="style.css">
-
-<style>
-/* =========================
-   BASE LAYOUT FIX
-========================= */
-.admin-dashboard{
-  max-width:1200px;
-  margin:auto;
-  padding:20px;
-}
-
-/* GRID */
-.admin-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px;
-}
-
-/* CARD */
-.card{
-  background:var(--card-bg, #fff);
-  border:1px solid #e5e7eb;
-  border-radius:18px;
-  padding:20px;
-}
-
-body.dark .card{
-  background:#1e293b;
-  border-color:#334155;
-}
-
-/* INPUTS */
-input, textarea{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border-radius:12px;
-  border:1px solid #e5e7eb;
-  outline:none;
-}
-
-body.dark input,
-body.dark textarea{
-  background:#0f172a;
-  color:#fff;
-  border-color:#334155;
-}
-
-/* BUTTON */
-button{
-  width:100%;
-  margin-top:12px;
-  padding:12px;
-  border:none;
-  border-radius:12px;
-  background:#2563eb;
-  color:#fff;
-  font-weight:600;
-  cursor:pointer;
-}
-
-button:hover{
-  background:#1d4ed8;
-}
-
-/* PRODUCT LIST */
-.product{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:12px;
-  border-bottom:1px solid #eee;
-}
-
-body.dark .product{
-  border-color:#334155;
-}
-
-/* IMAGE */
-.preview-img{
-  width:60px;
-  height:60px;
-  object-fit:cover;
-  border-radius:10px;
-  margin-top:8px;
-}
-
-/* MOBILE */
-@media(max-width:768px){
-  .admin-grid{
-    grid-template-columns:1fr;
-  }
-}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="style.css"/>
 </head>
 
-<body>
+<body class="dark">
 
-<!-- NAV -->
 <nav class="nav">
-  <div class="nav-logo">🛠 Admin Studio</div>
-
-  <div class="nav-actions">
-    <button onclick="toggleTheme()">🌙</button>
-  </div>
+  <div class="nav-logo">🛠 Admin Panel</div>
+  <button class="hamburger" onclick="toggleMenu()">☰</button>
 </nav>
 
-<!-- DASHBOARD -->
-<div class="admin-dashboard">
+<div class="container">
 
-  <div class="admin-grid">
+  <h2>Create Product</h2>
 
-    <!-- CREATE PRODUCT -->
-    <div class="card">
-      <h2>Add Product</h2>
+  <input id="name" placeholder="Product name"/>
+  <input id="price" type="number" placeholder="Price"/>
+  <textarea id="desc" placeholder="Description"></textarea>
 
-      <label>Name</label>
-      <input id="name" type="text" placeholder="Product name">
+  <!-- IMAGE INPUT -->
+  <input type="file" id="image" accept="image/*"/>
 
-      <label>Price</label>
-      <input id="price" type="number" placeholder="Price">
+  <button onclick="addProduct()">Save Product</button>
 
-      <label>Description</label>
-      <textarea id="desc" placeholder="Description"></textarea>
+  <hr/>
 
-      <label>Image</label>
-      <input id="image" type="file" accept="image/*">
+  <h2>Products</h2>
+  <div id="list"></div>
 
-      <button onclick="addProduct()">Save Product</button>
-    </div>
-
-    <!-- PRODUCT LIST -->
-    <div class="card">
-      <h2>Products</h2>
-      <div id="list"></div>
-    </div>
-
-  </div>
 </div>
 
 <script type="module">
 import { supabase } from "./supabase.js";
 
 /* =========================
-   ADD PRODUCT
+UPLOAD IMAGE TO SUPABASE
 ========================= */
-window.addProduct = async function(){
+async function uploadImage(file) {
+  const fileName = Date.now() + "-" + file.name;
 
+  const { data, error } = await supabase.storage
+    .from("products")
+    .upload(fileName, file);
+
+  if (error) {
+    console.log(error);
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage
+    .from("products")
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
+}
+
+/* =========================
+ADD PRODUCT
+========================= */
+window.addProduct = async function () {
   const name = document.getElementById("name").value;
   const price = document.getElementById("price").value;
   const desc = document.getElementById("desc").value;
-  const file = document.getElementById("image").files[0];
+  const imageFile = document.getElementById("image").files[0];
 
-  if(!name || !price){
-    alert("Name and price required");
+  if (!name || !price) {
+    alert("Fill required fields");
     return;
   }
 
   let imageUrl = "";
 
-  /* UPLOAD IMAGE */
-  if(file){
-    const fileName = Date.now() + "-" + file.name;
-
-    const { error: uploadError } = await supabase
-      .storage
-      .from("product-images")
-      .upload(fileName, file);
-
-    if(uploadError){
-      alert(uploadError.message);
-      return;
-    }
-
-    const { data } = supabase
-      .storage
-      .from("product-images")
-      .getPublicUrl(fileName);
-
-    imageUrl = data.publicUrl;
+  if (imageFile) {
+    imageUrl = await uploadImage(imageFile);
   }
 
-  /* SLUG */
-  const slug = name.toLowerCase().replace(/\s+/g,"-");
+  const slug = name.toLowerCase().replace(/\s+/g, "-");
 
-  /* SAVE */
-  const { error } = await supabase
-    .from("products")
-    .insert([{
+  const { error } = await supabase.from("products").insert([
+    {
       name,
-      price: Number(price),
+      price,
       description: desc,
       slug,
-      image: imageUrl
-    }]);
+      image_url: imageUrl
+    }
+  ]);
 
-  if(error){
+  if (error) {
     alert(error.message);
-    return;
+  } else {
+    alert("Product added!");
+    loadProducts();
   }
-
-  alert("Product added!");
-
-  document.getElementById("name").value = "";
-  document.getElementById("price").value = "";
-  document.getElementById("desc").value = "";
-  document.getElementById("image").value = "";
-
-  loadProducts();
 };
 
-
 /* =========================
-   LOAD PRODUCTS
+LOAD PRODUCTS
 ========================= */
-async function loadProducts(){
-
-  const { data } = await supabase
-    .from("products")
-    .select("*")
-    .order("id",{ascending:false});
+async function loadProducts() {
+  const { data } = await supabase.from("products").select("*");
 
   const list = document.getElementById("list");
   list.innerHTML = "";
 
   data.forEach(p => {
-
     list.innerHTML += `
-      <div class="product">
-        <div>
-          <strong>${p.name}</strong><br>
-          ₦${p.price}
-
-          ${p.image ? `<img src="${p.image}" class="preview-img">` : ""}
-        </div>
-
-        <button onclick="deleteProduct(${p.id})">Delete</button>
+      <div style="border:1px solid #444;padding:10px;margin:10px;border-radius:10px">
+        <img src="${p.image_url}" style="width:100px;height:100px;object-fit:cover"/>
+        <h3>${p.name}</h3>
+        <p>₦${p.price}</p>
       </div>
     `;
   });
 }
 
-
-/* =========================
-   DELETE PRODUCT
-========================= */
-window.deleteProduct = async function(id){
-
-  await supabase
-    .from("products")
-    .delete()
-    .eq("id", id);
-
-  loadProducts();
-};
-
 loadProducts();
+
+/* MENU */
+window.toggleMenu = function(){
+  alert("Menu clicked");
+};
 </script>
 
 </body>
