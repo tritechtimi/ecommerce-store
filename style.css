@@ -30,7 +30,7 @@ body.dark {
   color: var(--text-dark);
 }
 
-/* ========== NAVIGATION (glassmorphic) ========== */
+/* ========== NAVIGATION ========== */
 .nav {
   display: flex;
   justify-content: space-between;
@@ -128,7 +128,7 @@ body.dark .icon-btn:hover {
   cursor: pointer;
 }
 
-/* ========== HERO SECTION ========== */
+/* ========== HERO ========== */
 .hero {
   text-align: center;
   padding: 4rem 1.5rem 5rem;
@@ -151,7 +151,6 @@ body.dark .hero {
   font-weight: 600;
   color: #2563eb;
   margin-bottom: 1.2rem;
-  letter-spacing: 0.3px;
 }
 
 .hero h1 {
@@ -227,7 +226,7 @@ body.dark .hero p {
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
   gap: 1.8rem;
 }
 
@@ -238,6 +237,8 @@ body.dark .hero p {
   transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
   border: 1px solid var(--border-light);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
 }
 
 body.dark .card {
@@ -249,6 +250,19 @@ body.dark .card {
   transform: translateY(-6px);
   border-color: #2563eb;
   box-shadow: 0 18px 30px -12px rgba(0, 0, 0, 0.12);
+}
+
+.product-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 20px;
+  margin-bottom: 12px;
+  background: #f1f5f9;
+}
+
+body.dark .product-image {
+  background: #0f172a;
 }
 
 .card-icon {
@@ -280,6 +294,7 @@ body.dark .card-desc {
   margin-top: 0.5rem;
 }
 
+/* ========== LOADERS & STATES ========== */
 .loader-shimmer {
   background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
   background-size: 200% 100%;
@@ -371,5 +386,8 @@ body.dark .footer {
   }
   .card {
     padding: 1rem;
+  }
+  .product-image {
+    height: 150px;
   }
 }
