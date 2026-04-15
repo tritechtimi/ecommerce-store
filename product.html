@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Product | PrimeCart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo"><span class="logo-mark">🛒</span> PrimeCart</div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="admin.html">Admin Studio</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn theme-toggle" id="themeToggleBtn">🌙</button>
+      <a href="cart.html" class="cart-icon-btn">🛒 <span id="cartCount">0</span></a>
+      <button class="hamburger" id="hamburgerBtn">☰</button>
+    </div>
+  </nav>
+
+  <div class="product-detail-container" id="productDetail">
+    <div class="loader-shimmer">Loading product...</div>
+  </div>
+
+  <footer class="footer"><p>© 2025 PrimeCart</p></footer>
+
+  <script type="module">
+    import { supabase } from "./supabase.js";
+
+    // Cart helpers
+    let cart = JSON.parse(localStorage.getItem("primecart_cart")) || [];
+    function saveCart() { localStorage.setItem("primecart_cart", JSON.stringify(cart)); }
+    function updateCartBadge() {
+      const count = cart.reduce((s, i) => s + i.qty, 0);
+      const badge = document.getElementById("cartCount");
+      if (badge) badge.innerText = count;
+    }
+    window.addToCart = function(product, qty = 1) {
+      const existing = cart.find(i => i.id === product.id);
+      if (existing) existing.qty += qty;
+      else cart.push({ id: product.id, name: product.name, price: Number(product.price), qty, image: product.image_urls?.[0] || "" });
+      saveCart();
+      updateCartBadge();
+      alert(`${product.name} added to cart!`);
+    };
+
+    // Helper: rating stars
+    function renderStars(rating, size = "small") {
+      const full = Math.floor(rating);
+      const half = rating % 1 >= 0.5;
+      let stars = '';
+      for (let i = 0; i < full; i++) stars += '<span class="star-filled">★</span>';
+      if (half) stars += '<span class="star-half">★</span>';
+      for (let i = stars.length; i < 5; i++) stars += '<span class="star-empty">★</span>';
+      return `<div class="rating-stars">${stars}<span class="rating-value">(${rating.toFixed(1)})</span></div>`;
+    }
+
+    // Load product and reviews
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('id');
+    const container = document.getElementById("productDetail");
+
+    async function loadProduct() {
+      if (!productId) { container.innerHTML = "<div class='error-state'>Product ID missing.</div>"; return; }
+      try {
+        container.innerHTML = `<div class="loader-shimmer">Loading product details...</div>`;
+        const { data: product, error } = await supabase.from("products").select("*").eq("id", productId).single();
+        if (error) throw error;
+        if (!product) { container.innerHTML = "<div class='error-state'>Product not found.</div>"; return; }
+
+        const images = product.image_urls || [];
+        const mainImage = images[0] || "https://placehold.co/800x600?text=No+Image";
+        let thumbsHtml = "";
+        images.forEach((img, idx) => { thumbsHtml += `<img src="${img}" class="thumb ${idx === 0 ? 'active' : ''}" data-index="${idx}" onclick="changeMainImage('${img}', this)">`; });
+
+        let stockStatus = "";
+        if (product.stock_quantity <= 0) stockStatus = `<span style="color:#ef4444;">Out of Stock</span>`;
+        else if (product.stock_quantity < 5) stockStatus = `<span style="color:#f97316;">Only ${product.stock_quantity} left</span>`;
+        else stockStatus = `<span style="color:#22c55e;">In Stock (${product.stock_quantity})</span>`;
+
+        container.innerHTML = `
+          <div class="gallery-section">
+            <div class="gallery-main"><img id="mainImage" src="${mainImage}" alt="${escapeHtml(product.name)}"></div>
+            <div class="gallery-thumbs" id="thumbsContainer">${thumbsHtml}</div>
+          </div>
+          <div class="product-info-detail">
+            <a href="index.html" class="back-link">← Back to store</a>
+            <h1>${escapeHtml(product.name)}</h1>
+            <div class="category-badge">${escapeHtml(product.category || "Uncategorized")}</div>
+            <div class="stock-status">${stockStatus}</div>
+            ${renderStars(product.rating_avg || 0, "large")}
+            <div class="product-price-detail">₦${Number(product.price).toLocaleString()}</div>
+            <div class="product-description-detail">${escapeHtml(product.description) || "No description provided."}</div>
+            <div class="quantity-selector">
+              <button id="qtyMinus">-</button>
+              <span id="qtyValue">1</span>
+              <button id="qtyPlus">+</button>
+            </div>
+            <button id="addToCartBtn" class="add-to-cart-detail" ${product.stock_quantity <= 0 ? 'disabled' : ''}>Add to Cart 🛒</button>
+          </div>
+          <div class="reviews-section" id="reviewsSection">
+            <h3>Customer Reviews</h3>
+            <div id="reviewsList"></div>
+            <div class="add-review">
+              <h4>Write a Review</h4>
+              <input type="text" id="reviewName" placeholder="Your name">
+              <select id="reviewRating">
+                <option value="5">★★★★★ (5)</option>
+                <option value="4">★★★★☆ (4)</option>
+                <option value="3">★★★☆☆ (3)</option>
+                <option value="2">★★☆☆☆ (2)</option>
+                <option value="1">★☆☆☆☆ (1)</option>
+              </select>
+              <textarea id="reviewComment" rows="3" placeholder="Your review..."></textarea>
+              <button class="submit-review" id="submitReviewBtn">Submit Review</button>
+            </div>
+          </div>
+        `;
+
+        // Quantity controls
+        let qty = 1;
+        document.getElementById("qtyMinus").onclick = () => { if(qty > 1) { qty--; document.getElementById("qtyValue").innerText = qty; } };
+        document.getElementById("qtyPlus").onclick = () => { if(qty < product.stock_quantity) { qty++; document.getElementById("qtyValue").innerText = qty; } else alert("Not enough stock"); };
+        document.getElementById("addToCartBtn").onclick = () => { window.addToCart(product, qty); };
+
+        window.changeMainImage = (url, el) => {
+          document.getElementById("mainImage").src = url;
+          document.querySelectorAll(".thumb").forEach(thumb => thumb.classList.remove("active"));
+          el.classList.add("active");
+        };
+
+        // Load reviews
+        await loadReviews(product.id);
+      } catch (err) { container.innerHTML = `<div class="error-state">Failed to load product: ${err.message}</div>`; }
+    }
+
+    async function loadReviews(productId) {
+      const { data: reviews, error } = await supabase.from("reviews").select("*").eq("product_id", productId).order("created_at", { ascending: false });
+      if (error) { console.error(error); return; }
+      const reviewsDiv = document.getElementById("reviewsList");
+      if (!reviewsDiv) return;
+      if (!reviews || reviews.length === 0) {
+        reviewsDiv.innerHTML = "<p>No reviews yet. Be the first!</p>";
+        return;
+      }
+      reviewsDiv.innerHTML = "";
+      reviews.forEach(r => {
+        const stars = renderStars(r.rating, "small");
+        const date = new Date(r.created_at).toLocaleDateString();
+        reviewsDiv.innerHTML += `
+          <div class="review-card">
+            <div class="review-user">${escapeHtml(r.user_name)}</div>
+            <div class="review-date">${date}</div>
+            ${stars}
+            <div class="review-comment">${escapeHtml(r.comment)}</div>
+          </div>
+        `;
+      });
+    }
+
+    // Submit review
+    window.submitReview = async function() {
+      const name = document.getElementById("reviewName")?.value.trim();
+      const rating = parseInt(document.getElementById("reviewRating")?.value);
+      const comment = document.getElementById("reviewComment")?.value.trim();
+      if (!name || !comment) { alert("Please enter your name and comment."); return; }
+      const { error } = await supabase.from("reviews").insert([{ product_id: productId, user_name: name, rating, comment }]);
+      if (error) { alert("Error submitting review: " + error.message); return; }
+      alert("Review submitted! Thank you.");
+      document.getElementById("reviewName").value = "";
+      document.getElementById("reviewComment").value = "";
+      // Update average rating
+      const { data: reviews } = await supabase.from("reviews").select("rating").eq("product_id", productId);
+      if (reviews && reviews.length) {
+        const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+        await supabase.from("products").update({ rating_avg: avg }).eq("id", productId);
+      }
+      await loadReviews(productId);
+      // Refresh product rating display
+      const { data: updated } = await supabase.from("products").select("rating_avg").eq("id", productId).single();
+      const ratingDiv = document.querySelector(".rating-stars");
+      if (ratingDiv && updated) ratingDiv.outerHTML = renderStars(updated.rating_avg || 0);
+    };
+
+    function escapeHtml(str) { return str?.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || ""; }
+
+    // Theme & menu
+    function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
+    window.toggleTheme = () => { document.body.classList.toggle("dark"); localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light"); setThemeIcon(); };
+    if (localStorage.getItem("primecart_theme") === "dark") document.body.classList.add("dark");
+    setThemeIcon();
+    document.getElementById("themeToggleBtn")?.addEventListener("click", () => window.toggleTheme());
+    window.toggleMenu = () => document.getElementById("navLinks").classList.toggle("active");
+    document.getElementById("hamburgerBtn")?.addEventListener("click", () => window.toggleMenu());
+
+    updateCartBadge();
+    loadProduct();
+    document.addEventListener("click", (e) => { if (e.target.id === "submitReviewBtn") window.submitReview(); });
+  </script>
+</body>
+</html>
