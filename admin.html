@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Panel</title>
+  <title>Admin Dashboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <nav style="padding:15px; background:black; color:white;">
-    <a href="index.html" style="color:white;">← Back to Store</a>
+  <nav>
+    <a href="index.html">← Back to Store</a>
   </nav>
 
   <div class="container">
@@ -18,7 +18,7 @@
     <input id="price" placeholder="Price">
     <textarea id="desc" placeholder="Description"></textarea>
 
-    <button onclick="addProduct()">Add Product</button>
+    <button onclick="addProduct()">➕ Add Product</button>
   </div>
 
   <script type="module">
@@ -29,19 +29,42 @@
       const price = document.getElementById("price").value;
       const desc = document.getElementById("desc").value;
 
-      const { error } = await supabase.from("products").insert({
-        name,
-        price: Number(price),
-        description: desc,
-        is_active: true
-      });
-
-      if (error) {
-        alert("Error adding product");
-      } else {
-        alert("Product added!");
+      // VALIDATION
+      if (!name || !price) {
+        alert("Name and price are required");
+        return;
       }
-    }
+
+      console.log("Sending to Supabase...", { name, price, desc });
+
+      const { data, error } = await supabase
+        .from("products")
+        .insert([
+          {
+            name: name,
+            price: Number(price),
+            description: desc,
+            is_active: true,
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select();
+
+      // 🔴 DEBUG SECTION (THIS IS IMPORTANT)
+      if (error) {
+        console.log("❌ SUPABASE ERROR:", error);
+        alert("Error: " + error.message);
+        return;
+      }
+
+      console.log("✅ SUCCESS:", data);
+      alert("Product added successfully!");
+
+      // CLEAR FIELDS
+      document.getElementById("name").value = "";
+      document.getElementById("price").value = "";
+      document.getElementById("desc").value = "";
+    };
   </script>
 
 </body>
