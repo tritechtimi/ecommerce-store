@@ -161,7 +161,7 @@
       button.textContent = "Processing...";
 
       try {
-        // Insert order (including subtotal if required)
+        // Insert order – NO subtotal field
         const { data: order, error: orderError } = await supabase
           .from("orders")
           .insert([{
@@ -171,7 +171,6 @@
             customer_phone: phone,
             shipping_address: address,
             total_amount: totalAmount,
-            subtotal: totalAmount,   // Added for tables that require subtotal
             status: "pending"
           }])
           .select()
