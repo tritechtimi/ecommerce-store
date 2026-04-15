@@ -169,6 +169,7 @@
       button.textContent = "Processing...";
 
       try {
+        // Insert order
         const { data: order, error: orderError } = await supabase
           .from("orders")
           .insert([{
@@ -193,6 +194,7 @@
 
         if (orderError) throw orderError;
 
+        // Insert order items
         const orderItems = cart.map(item => ({
           order_id: order.id,
           product_id: item.id,
@@ -203,16 +205,34 @@
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
         if (itemsError) throw itemsError;
 
+        // Update stock AND increase sales_count for each product
         for (const item of cart) {
-          const { data: product } = await supabase.from("products").select("stock_quantity").eq("id", item.id).single();
+          const { data: product, error: fetchError } = await supabase
+            .from("products")
+            .select("stock_quantity, sales_count")
+            .eq("id", item.id)
+            .single();
+          if (fetchError) throw fetchError;
+
           const newStock = (product.stock_quantity || 0) - item.qty;
-          await supabase.from("products").update({ stock_quantity: newStock }).eq("id", item.id);
+          const newSales = (product.sales_count || 0) + item.qty;
+
+          const { error: updateError } = await supabase
+            .from("products")
+            .update({ 
+              stock_quantity: newStock,
+              sales_count: newSales 
+            })
+            .eq("id", item.id);
+          if (updateError) throw updateError;
         }
 
+        // Clear local cart and shipping data
         localStorage.removeItem("primecart_cart");
         localStorage.removeItem("shipping_data");
         cart = [];
 
+        // Redirect to payment page with order ID
         window.location.href = `payment.html?order_id=${order.id}`;
       } catch (err) {
         alert("Error creating order: " + err.message);
@@ -224,7 +244,7 @@
 
     function escapeHtml(str) { return str?.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || ""; }
 
-    // Theme & menu
+    // Theme & mobile menu
     function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
     window.toggleTheme = () => { document.body.classList.toggle("dark"); localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light"); setThemeIcon(); };
     if (localStorage.getItem("primecart_theme") === "dark") document.body.classList.add("dark");
