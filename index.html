@@ -1,71 +1,79 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>My Store</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NEXUS Store</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <!-- NAV -->
-  <nav class="nav">
-    <div class="logo">MyStore</div>
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">NEXUS</div>
 
-    <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="admin.html">Admin</a>
+  <ul class="nav-links">
+    <li><a href="#">Shop</a></li>
+    <li><a href="admin.html">Admin</a></li>
+  </ul>
+</nav>
 
-      <button onclick="toggleTheme()" class="toggle">
-        🌙 / ☀️
-      </button>
-    </div>
-  </nav>
+<!-- HERO -->
+<section class="hero">
+  <h1>Objects of <span>Tomorrow</span></h1>
+  <p>Premium curated products powered by modern commerce infrastructure.</p>
+</section>
 
-  <!-- HERO -->
-  <section class="hero">
-    <h1>Premium Products. Trusted Store.</h1>
-    <p>Shop high-quality items at the best prices.</p>
-  </section>
+<!-- PRODUCT GRID -->
+<section class="grid-section">
+  <div class="section-label">Products</div>
+  <div id="productGrid" class="product-grid"></div>
+</section>
 
-  <!-- PRODUCTS -->
-  <div id="products" class="grid"></div>
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastMsg">Added</span>
+</div>
 
-  <script type="module">
-    import { supabase } from "./supabase.js";
+<script type="module">
+import { supabase } from "./supabase.js";
 
-    async function loadProducts() {
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .eq("is_active", true);
+const grid = document.getElementById("productGrid");
 
-      const container = document.getElementById("products");
+async function loadProducts() {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("is_active", true)
+    .order("id", { ascending: false });
 
-      container.innerHTML = "";
+  if (error) {
+    console.log(error);
+    return;
+  }
 
-      if (!data || data.length === 0) {
-        container.innerHTML = "<p>No products available</p>";
-        return;
-      }
+  grid.innerHTML = "";
 
-      data.forEach(p => {
-        container.innerHTML += `
-          <div class="card">
-            <h3>${p.name}</h3>
-            <p>${p.description || ""}</p>
-            <b>₦${p.price}</b>
+  data.forEach(product => {
+    grid.innerHTML += `
+      <div class="card">
+        <div class="card-body">
+          <div class="card-title">${product.name}</div>
+          <div class="card-desc">${product.description || ""}</div>
+          <div class="card-footer">
+            <div class="price">₦${product.price}</div>
           </div>
-        `;
-      });
-    }
+        </div>
+      </div>
+    `;
+  });
+}
 
-    loadProducts();
-
-    // THEME TOGGLE
-    window.toggleTheme = function () {
-      document.body.classList.toggle("light");
-    }
-  </script>
+loadProducts();
+</script>
 
 </body>
 </html>
