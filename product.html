@@ -48,7 +48,7 @@
     };
 
     // Helper: rating stars
-    function renderStars(rating, size = "small") {
+    function renderStars(rating) {
       const full = Math.floor(rating);
       const half = rating % 1 >= 0.5;
       let stars = '';
@@ -56,6 +56,40 @@
       if (half) stars += '<span class="star-half">★</span>';
       for (let i = stars.length; i < 5; i++) stars += '<span class="star-empty">★</span>';
       return `<div class="rating-stars">${stars}<span class="rating-value">(${rating.toFixed(1)})</span></div>`;
+    }
+
+    // Helper: stock scarcity bar (larger version for detail page)
+    function renderStockBarDetail(stock, maxStock = 20) {
+      if (stock === undefined || stock === null) return '';
+      let percent = Math.min(100, (stock / maxStock) * 100);
+      let barColor = '#22c55e';
+      let statusText = `${stock} left`;
+      let urgency = '';
+      if (stock <= 0) {
+        percent = 0;
+        barColor = '#ef4444';
+        statusText = 'Out of stock';
+        urgency = 'danger';
+      } else if (stock <= 3) {
+        barColor = '#ef4444';
+        statusText = `⚠️ Only ${stock} left! Order soon.`;
+        urgency = 'danger';
+      } else if (stock <= 5) {
+        barColor = '#f97316';
+        statusText = `🔥 Only ${stock} left!`;
+        urgency = 'warning';
+      } else if (stock <= 10) {
+        barColor = '#eab308';
+        statusText = `${stock} left`;
+      } else {
+        statusText = `${stock} in stock`;
+      }
+      return `
+        <div class="stock-bar-container stock-bar-large">
+          <div class="stock-bar-fill" style="width: ${percent}%; background: ${barColor};"></div>
+        </div>
+        <div class="stock-status-text ${urgency}" style="color: ${barColor}; font-weight: 600;">${statusText}</div>
+      `;
     }
 
     // Load product and reviews
@@ -91,7 +125,8 @@
             <h1>${escapeHtml(product.name)}</h1>
             <div class="category-badge">${escapeHtml(product.category || "Uncategorized")}</div>
             <div class="stock-status">${stockStatus}</div>
-            ${renderStars(product.rating_avg || 0, "large")}
+            ${renderStars(product.rating_avg || 0)}
+            ${renderStockBarDetail(product.stock_quantity)}
             <div class="product-price-detail">₦${Number(product.price).toLocaleString()}</div>
             <div class="product-description-detail">${escapeHtml(product.description) || "No description provided."}</div>
             <div class="quantity-selector">
@@ -120,10 +155,11 @@
           </div>
         `;
 
-        // Quantity controls
+        // Quantity controls (respect stock)
         let qty = 1;
-        document.getElementById("qtyMinus").onclick = () => { if(qty > 1) { qty--; document.getElementById("qtyValue").innerText = qty; } };
-        document.getElementById("qtyPlus").onclick = () => { if(qty < product.stock_quantity) { qty++; document.getElementById("qtyValue").innerText = qty; } else alert("Not enough stock"); };
+        const qtySpan = document.getElementById("qtyValue");
+        document.getElementById("qtyMinus").onclick = () => { if(qty > 1) { qty--; qtySpan.innerText = qty; } };
+        document.getElementById("qtyPlus").onclick = () => { if(qty < product.stock_quantity) { qty++; qtySpan.innerText = qty; } else if(product.stock_quantity > 0) alert("Not enough stock"); };
         document.getElementById("addToCartBtn").onclick = () => { window.addToCart(product, qty); };
 
         window.changeMainImage = (url, el) => {
@@ -132,7 +168,6 @@
           el.classList.add("active");
         };
 
-        // Load reviews
         await loadReviews(product.id);
       } catch (err) { container.innerHTML = `<div class="error-state">Failed to load product: ${err.message}</div>`; }
     }
@@ -148,7 +183,7 @@
       }
       reviewsDiv.innerHTML = "";
       reviews.forEach(r => {
-        const stars = renderStars(r.rating, "small");
+        const stars = renderStars(r.rating);
         const date = new Date(r.created_at).toLocaleDateString();
         reviewsDiv.innerHTML += `
           <div class="review-card">
@@ -161,7 +196,6 @@
       });
     }
 
-    // Submit review
     window.submitReview = async function() {
       const name = document.getElementById("reviewName")?.value.trim();
       const rating = parseInt(document.getElementById("reviewRating")?.value);
