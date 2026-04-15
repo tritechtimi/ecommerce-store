@@ -66,6 +66,36 @@
       return `<div class="rating-stars">${stars}<span class="rating-value">(${rating.toFixed(1)})</span></div>`;
     }
 
+    // Helper: stock scarcity bar HTML
+    function renderStockBar(stock, maxStock = 20) {
+      if (stock === undefined || stock === null) return '';
+      let percent = Math.min(100, (stock / maxStock) * 100);
+      let barColor = '#22c55e'; // green
+      let statusText = `${stock} left`;
+      if (stock <= 0) {
+        percent = 0;
+        barColor = '#ef4444';
+        statusText = 'Out of stock';
+      } else if (stock <= 3) {
+        barColor = '#ef4444';
+        statusText = `Only ${stock} left!`;
+      } else if (stock <= 5) {
+        barColor = '#f97316';
+        statusText = `Only ${stock} left`;
+      } else if (stock <= 10) {
+        barColor = '#eab308';
+        statusText = `${stock} left`;
+      } else {
+        statusText = `${stock} in stock`;
+      }
+      return `
+        <div class="stock-bar-container">
+          <div class="stock-bar-fill" style="width: ${percent}%; background: ${barColor};"></div>
+        </div>
+        <div class="stock-status-text" style="color: ${barColor};">${statusText}</div>
+      `;
+    }
+
     // Load products
     const grid = document.getElementById("productGrid");
     async function loadProducts() {
@@ -86,10 +116,11 @@
           card.innerHTML = `
             <div class="card-image"><img src="${escapeHtml(firstImage)}" alt="${escapeHtml(product.name)}" loading="lazy" onerror="this.src='https://placehold.co/600x400?text=Error'"></div>
             <div class="card-content">
-              <div><span class="product-category">${escapeHtml(product.category || "Uncategorized")}</span><span class="stock-badge ${stockClass}">${stockText}</span></div>
+              <div><span class="product-category">${escapeHtml(product.category || "Uncategorized")}</span></div>
               <h3 class="product-title">${escapeHtml(product.name)}</h3>
               ${renderStars(product.rating_avg || 0)}
               <div class="product-price">₦${Number(product.price).toLocaleString()}</div>
+              ${renderStockBar(product.stock_quantity)}
               <a href="product.html?id=${product.id}" class="view-details-btn">View Details</a>
             </div>
           `;
