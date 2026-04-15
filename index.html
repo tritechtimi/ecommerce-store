@@ -4,269 +4,113 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>PrimeCart | Modern Store</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <!-- Navbar -->
   <nav class="nav">
-    <div class="nav-logo">
-      <span class="logo-mark">🛒</span> PrimeCart
-    </div>
+    <div class="nav-logo"><span class="logo-mark">🛒</span> PrimeCart</div>
     <ul class="nav-links" id="navLinks">
-      <li><a href="#" class="active-nav">Home</a></li>
+      <li><a href="index.html" class="active-nav">Home</a></li>
       <li><a href="admin.html">Admin Studio</a></li>
     </ul>
     <div class="nav-actions">
       <button class="icon-btn theme-toggle" id="themeToggleBtn">🌙</button>
-      <button class="cart-icon-btn" onclick="toggleCart()">
-        🛒 <span id="cartCount">0</span>
-      </button>
+      <a href="cart.html" class="cart-icon-btn">🛒 <span id="cartCount">0</span></a>
       <button class="hamburger" id="hamburgerBtn">☰</button>
     </div>
   </nav>
 
-  <!-- Hero Section -->
   <section class="hero">
     <div class="hero-badge">✨ new season arrival</div>
     <h1>Shop Smart. <span class="accent-text">Buy Better.</span></h1>
     <p>Minimalist e‑commerce powered by Supabase — lightning fast & artistic.</p>
-    <div class="hero-cta">
-      <button class="btn-primary" id="exploreBtn">Explore collection →</button>
-    </div>
+    <div class="hero-cta"><button class="btn-primary" id="exploreBtn">Explore collection →</button></div>
   </section>
 
-  <!-- Product Grid -->
   <section class="grid-section">
-    <div class="section-header">
-      <div class="section-label">Curated for you</div>
-      <div class="section-line"></div>
-    </div>
-    <div id="productGrid" class="product-grid">
-      <div class="loader-shimmer">Loading timeless pieces...</div>
-    </div>
+    <div class="section-header"><div class="section-label">Curated for you</div><div class="section-line"></div></div>
+    <div id="productGrid" class="product-grid"><div class="loader-shimmer">Loading timeless pieces...</div></div>
   </section>
 
-  <!-- Cart Overlay & Drawer -->
-  <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
-  <div class="cart-drawer" id="cartDrawer">
-    <div class="cart-header">
-      <h2>🛒 Your Cart</h2>
-      <button class="close-cart" onclick="toggleCart()">✕</button>
-    </div>
-    <div class="cart-items" id="cartItems">
-      <p class="empty-cart">Your cart is empty</p>
-    </div>
-    <div class="cart-footer">
-      <div class="cart-total">
-        <span>Total:</span>
-        <span>₦<span id="cartTotal">0</span></span>
-      </div>
-      <button class="checkout-btn" onclick="checkout()">Proceed to Checkout</button>
-    </div>
-  </div>
-
-  <footer class="footer">
-    <p>© 2025 PrimeCart — minimalist aesthetics, powerful backend.</p>
-  </footer>
+  <footer class="footer"><p>© 2025 PrimeCart — minimalist aesthetics, powerful backend.</p></footer>
 
   <script type="module">
     import { supabase } from "./supabase.js";
 
-    // ---------- CART LOGIC (localStorage, sliding drawer) ----------
+    // Cart helpers
     let cart = JSON.parse(localStorage.getItem("primecart_cart")) || [];
+    function saveCart() { localStorage.setItem("primecart_cart", JSON.stringify(cart)); }
+    function updateCartBadge() {
+      const count = cart.reduce((s, i) => s + i.qty, 0);
+      const badge = document.getElementById("cartCount");
+      if (badge) badge.innerText = count;
+    }
+    window.addToCart = function(product, qty = 1) {
+      const existing = cart.find(i => i.id === product.id);
+      if (existing) existing.qty += qty;
+      else cart.push({ id: product.id, name: product.name, price: Number(product.price), qty, image: product.image_urls?.[0] || "" });
+      saveCart();
+      updateCartBadge();
+      alert(`${product.name} added to cart!`);
+    };
 
-    function saveCart() {
-      localStorage.setItem("primecart_cart", JSON.stringify(cart));
+    // Helper: rating stars HTML
+    function renderStars(rating) {
+      const full = Math.floor(rating);
+      const half = rating % 1 >= 0.5;
+      let stars = '';
+      for (let i = 0; i < full; i++) stars += '<span class="star-filled">★</span>';
+      if (half) stars += '<span class="star-half">★</span>';
+      for (let i = stars.length; i < 5; i++) stars += '<span class="star-empty">★</span>';
+      return `<div class="rating-stars">${stars}<span class="rating-value">(${rating.toFixed(1)})</span></div>`;
     }
 
-    function updateCartUI() {
-      const cartCountSpan = document.getElementById("cartCount");
-      const cartItemsDiv = document.getElementById("cartItems");
-      const cartTotalSpan = document.getElementById("cartTotal");
-
-      // update cart badge
-      const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
-      if (cartCountSpan) cartCountSpan.innerText = itemCount;
-
-      if (!cartItemsDiv) return;
-
-      if (cart.length === 0) {
-        cartItemsDiv.innerHTML = '<p class="empty-cart">Your cart is empty 🛍️</p>';
-        if (cartTotalSpan) cartTotalSpan.innerText = "0";
-        return;
-      }
-
-      let total = 0;
-      let html = "";
-      cart.forEach((item, idx) => {
-        const itemTotal = item.price * item.qty;
-        total += itemTotal;
-        html += `
-          <div class="cart-item" data-id="${item.id}">
-            <div class="cart-item-info">
-              <h4>${escapeHtml(item.name)}</h4>
-              <div class="cart-item-price">₦${Number(item.price).toLocaleString()}</div>
-            </div>
-            <div class="cart-item-actions">
-              <div class="qty-controls">
-                <button class="qty-btn" onclick="window.changeQty('${item.id}', -1)">-</button>
-                <span>${item.qty}</span>
-                <button class="qty-btn" onclick="window.changeQty('${item.id}', 1)">+</button>
-              </div>
-              <button class="remove-btn" onclick="window.removeFromCart('${item.id}')">🗑</button>
-            </div>
-          </div>
-        `;
-      });
-      cartItemsDiv.innerHTML = html;
-      if (cartTotalSpan) cartTotalSpan.innerText = total.toLocaleString();
-    }
-
-    window.addToCart = function(product) {
-      const existing = cart.find(item => item.id === product.id);
-      if (existing) {
-        existing.qty += 1;
-      } else {
-        cart.push({
-          id: product.id,
-          name: product.name,
-          price: Number(product.price),
-          qty: 1,
-          image: product.image_url
-        });
-      }
-      saveCart();
-      updateCartUI();
-      // optional: subtle animation feedback
-      const btn = event?.target;
-      if (btn) btn.style.transform = 'scale(0.95)';
-      setTimeout(() => { if (btn) btn.style.transform = ''; }, 150);
-    };
-
-    window.changeQty = function(id, delta) {
-      const item = cart.find(i => i.id === id);
-      if (!item) return;
-      item.qty += delta;
-      if (item.qty <= 0) {
-        cart = cart.filter(i => i.id !== id);
-      }
-      saveCart();
-      updateCartUI();
-    };
-
-    window.removeFromCart = function(id) {
-      cart = cart.filter(i => i.id !== id);
-      saveCart();
-      updateCartUI();
-    };
-
-    window.toggleCart = function() {
-      document.getElementById("cartDrawer").classList.toggle("active");
-      document.getElementById("cartOverlay").classList.toggle("active");
-    };
-
-    window.checkout = function() {
-      if (cart.length === 0) {
-        alert("Your cart is empty.");
-        return;
-      }
-      alert("🚀 Checkout coming soon! Next step: Paystack integration.");
-    };
-
-    function escapeHtml(str) {
-      if (!str) return "";
-      return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-      });
-    }
-
-    // ---------- LOAD PRODUCTS FROM SUPABASE ----------
+    // Load products
     const grid = document.getElementById("productGrid");
-
     async function loadProducts() {
       try {
         grid.innerHTML = `<div class="loader-shimmer">✨ Curating collection...</div>`;
-        const { data, error } = await supabase
-          .from("products")
-          .select("*")
-          .order("id", { ascending: false });
-
+        const { data, error } = await supabase.from("products").select("*").order("id", { ascending: false });
         if (error) throw error;
-
-        if (!data || data.length === 0) {
-          grid.innerHTML = `<div class="empty-state">🎨 No products yet — visit admin to add masterpieces.</div>`;
-          return;
-        }
-
+        if (!data || data.length === 0) { grid.innerHTML = `<div class="empty-state">🎨 No products yet — visit admin to add masterpieces.</div>`; return; }
         grid.innerHTML = "";
         data.forEach(product => {
+          const firstImage = (product.image_urls && product.image_urls[0]) || "https://placehold.co/600x400?text=No+Image";
+          let stockClass = "stock-instock";
+          let stockText = "In Stock";
+          if (product.stock_quantity <= 0) { stockClass = "stock-out"; stockText = "Out of Stock"; }
+          else if (product.stock_quantity < 5) { stockClass = "stock-low"; stockText = `Only ${product.stock_quantity} left`; }
           const card = document.createElement("div");
           card.className = "product-card";
-          const imageUrl = product.image_url || "https://placehold.co/600x400?text=No+Image";
           card.innerHTML = `
-            <div class="card-image">
-              <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(product.name)}" loading="lazy" onerror="this.src='https://placehold.co/600x400?text=Error'">
-            </div>
+            <div class="card-image"><img src="${escapeHtml(firstImage)}" alt="${escapeHtml(product.name)}" loading="lazy" onerror="this.src='https://placehold.co/600x400?text=Error'"></div>
             <div class="card-content">
+              <div><span class="product-category">${escapeHtml(product.category || "Uncategorized")}</span><span class="stock-badge ${stockClass}">${stockText}</span></div>
               <h3 class="product-title">${escapeHtml(product.name)}</h3>
-              <p class="product-description">${escapeHtml(product.description?.slice(0, 100) || "Premium quality item")}</p>
+              ${renderStars(product.rating_avg || 0)}
               <div class="product-price">₦${Number(product.price).toLocaleString()}</div>
-              <button class="add-to-cart-btn" data-product='${JSON.stringify(product)}'>Add to Cart 🛒</button>
+              <a href="product.html?id=${product.id}" class="view-details-btn">View Details</a>
             </div>
           `;
           grid.appendChild(card);
         });
-
-        // attach event listeners to each add-to-cart button
-        document.querySelectorAll(".add-to-cart-btn").forEach(btn => {
-          btn.addEventListener("click", (e) => {
-            const product = JSON.parse(btn.getAttribute("data-product"));
-            window.addToCart(product);
-          });
-        });
-      } catch (err) {
-        console.error(err);
-        grid.innerHTML = `<div class="error-state">⚠️ Failed to load products. Check Supabase connection.</div>`;
-      }
+      } catch (err) { grid.innerHTML = `<div class="error-state">⚠️ Failed to load products.</div>`; }
     }
 
-    // ---------- DARK MODE ----------
-    function setThemeIcon() {
-      const isDark = document.body.classList.contains("dark");
-      const themeBtn = document.getElementById("themeToggleBtn");
-      if (themeBtn) themeBtn.textContent = isDark ? "☀️" : "🌙";
-    }
+    function escapeHtml(str) { return str?.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || ""; }
 
-    window.toggleTheme = function() {
-      document.body.classList.toggle("dark");
-      localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light");
-      setThemeIcon();
-    };
-
-    const savedTheme = localStorage.getItem("primecart_theme");
-    if (savedTheme === "dark") document.body.classList.add("dark");
+    // Theme & mobile menu
+    function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
+    window.toggleTheme = () => { document.body.classList.toggle("dark"); localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light"); setThemeIcon(); };
+    if (localStorage.getItem("primecart_theme") === "dark") document.body.classList.add("dark");
     setThemeIcon();
     document.getElementById("themeToggleBtn")?.addEventListener("click", () => window.toggleTheme());
-
-    // Mobile menu
-    window.toggleMenu = function() {
-      document.getElementById("navLinks").classList.toggle("active");
-    };
+    window.toggleMenu = () => document.getElementById("navLinks").classList.toggle("active");
     document.getElementById("hamburgerBtn")?.addEventListener("click", () => window.toggleMenu());
-    document.querySelectorAll(".nav-links a").forEach(link => {
-      link.addEventListener("click", () => document.getElementById("navLinks")?.classList.remove("active"));
-    });
-    document.getElementById("exploreBtn")?.addEventListener("click", () => {
-      document.querySelector(".grid-section")?.scrollIntoView({ behavior: "smooth" });
-    });
+    document.getElementById("exploreBtn")?.addEventListener("click", () => document.querySelector(".grid-section")?.scrollIntoView({ behavior: "smooth" }));
 
-    // Initialize
-    updateCartUI();
+    updateCartBadge();
     loadProducts();
   </script>
 </body>
