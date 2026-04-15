@@ -7,21 +7,25 @@
 
 <body>
 
-  <!-- NAVIGATION -->
-  <nav style="padding:15px; background:black; color:white; display:flex; justify-content:space-between;">
-    <div><b>My Store</b></div>
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="logo">MyStore</div>
 
-    <div>
-      <a href="index.html" style="color:white; margin-right:10px;">Home</a>
-      <a href="admin.html" style="color:white;">Admin</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="admin.html">Admin</a>
+
+      <button onclick="toggleTheme()" class="toggle">
+        🌙 / ☀️
+      </button>
     </div>
   </nav>
 
   <!-- HERO -->
-  <header class="hero">
-    <h1>Welcome to My Store</h1>
-    <p>Premium products at affordable prices</p>
-  </header>
+  <section class="hero">
+    <h1>Premium Products. Trusted Store.</h1>
+    <p>Shop high-quality items at the best prices.</p>
+  </section>
 
   <!-- PRODUCTS -->
   <div id="products" class="grid"></div>
@@ -37,8 +41,10 @@
 
       const container = document.getElementById("products");
 
+      container.innerHTML = "";
+
       if (!data || data.length === 0) {
-        container.innerHTML = "<p>No products yet</p>";
+        container.innerHTML = "<p>No products available</p>";
         return;
       }
 
@@ -54,6 +60,11 @@
     }
 
     loadProducts();
+
+    // THEME TOGGLE
+    window.toggleTheme = function () {
+      document.body.classList.toggle("light");
+    }
   </script>
 
 </body>
