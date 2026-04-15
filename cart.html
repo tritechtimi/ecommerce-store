@@ -69,7 +69,7 @@
           </div>
         `;
       });
-      itemsHtml += `</div><div class="cart-summary"><div class="cart-total">Total: ₦${total.toLocaleString()}</div><button class="checkout-btn-cart" onclick="window.checkout()">Proceed to Checkout</button><div><a href="index.html" class="continue-shopping">← Continue Shopping</a></div></div>`;
+      itemsHtml += `</div><div class="cart-summary"><div class="cart-total">Total: ₦${total.toLocaleString()}</div><a href="checkout.html" class="checkout-btn-cart" style="display:inline-block; text-decoration:none; text-align:center;">Proceed to Checkout</a><div><a href="index.html" class="continue-shopping">← Continue Shopping</a></div></div>`;
       container.innerHTML = itemsHtml;
       updateCartBadge();
     }
@@ -87,7 +87,6 @@
       saveCart();
       renderCart();
     };
-    window.checkout = () => { if (cart.length === 0) alert("Cart empty"); else alert("🚀 Checkout coming soon! (Payment page will be added later)."); };
     function escapeHtml(str) { return str?.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || ""; }
     // Theme
     function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
