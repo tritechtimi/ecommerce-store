@@ -1,21 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Admin - NEXUS</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<title>Admin - PrimeCart</title>
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <nav>
-  <div class="nav-logo">ADMIN PANEL</div>
+  <div class="nav-logo">Admin Panel</div>
 </nav>
 
-<section class="admin-container">
+<div class="admin-container">
 
   <h2>Add Product</h2>
 
@@ -25,7 +21,7 @@
 
   <button onclick="addProduct()">Save Product</button>
 
-</section>
+</div>
 
 <script type="module">
 import { supabase } from "./supabase.js";
@@ -36,28 +32,12 @@ window.addProduct = async function () {
   const price = document.getElementById("price").value;
   const desc = document.getElementById("desc").value;
 
-  if (!name || !price) {
-    alert("Fill required fields");
-    return;
-  }
-
-  const slug = name.toLowerCase().replace(/\s+/g, "-");
-
   const { error } = await supabase
     .from("products")
-    .insert([
-      {
-        name,
-        price: Number(price),
-        description: desc,
-        slug,
-        is_active: true
-      }
-    ]);
+    .insert([{ name, price, description: desc }]);
 
   if (error) {
     alert(error.message);
-    console.log(error);
   } else {
     alert("Product added!");
   }
