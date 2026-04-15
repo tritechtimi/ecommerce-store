@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Store</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="hero">
+    <h1>Welcome to My Store</h1>
+    <p>Premium products at affordable prices</p>
+  </header>
+
+  <div id="products" class="grid"></div>
+
+  <script type="module">
+    import { supabase } from "./supabase.js";
+
+    async function loadProducts() {
+      const { data } = await supabase
+        .from("products")
+        .select("*")
+        .eq("is_active", true);
+
+      const container = document.getElementById("products");
+
+      data.forEach(p => {
+        container.innerHTML += `
+          <div class="card">
+            <h3>${p.name}</h3>
+            <p>${p.description}</p>
+            <b>₦${p.price}</b>
+          </div>
+        `;
+      });
+    }
+
+    loadProducts();
+  </script>
+
+</body>
+</html>
