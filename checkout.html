@@ -161,7 +161,7 @@
       button.textContent = "Processing...";
 
       try {
-        // Insert order
+        // Insert order (including subtotal if required)
         const { data: order, error: orderError } = await supabase
           .from("orders")
           .insert([{
@@ -171,7 +171,8 @@
             customer_phone: phone,
             shipping_address: address,
             total_amount: totalAmount,
-            status: "pending"  // initial status
+            subtotal: totalAmount,   // Added for tables that require subtotal
+            status: "pending"
           }])
           .select()
           .single();
@@ -212,7 +213,7 @@
 
     function escapeHtml(str) { return str?.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || ""; }
 
-    // Theme & mobile menu (same as before)
+    // Theme & mobile menu
     function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
     window.toggleTheme = () => { document.body.classList.toggle("dark"); localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light"); setThemeIcon(); };
     if (localStorage.getItem("primecart_theme") === "dark") document.body.classList.add("dark");
