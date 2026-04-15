@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Your Cart | PrimeCart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo"><span class="logo-mark">🛒</span> PrimeCart</div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="admin.html">Admin Studio</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn theme-toggle" id="themeToggleBtn">🌙</button>
+      <a href="cart.html" class="cart-icon-btn">🛒 <span id="cartCount">0</span></a>
+      <button class="hamburger" id="hamburgerBtn">☰</button>
+    </div>
+  </nav>
+
+  <div class="cart-page">
+    <div class="cart-header">
+      <h1>🛒 Your Shopping Cart</h1>
+    </div>
+    <div id="cartContainer">
+      <div class="loader-shimmer">Loading cart...</div>
+    </div>
+  </div>
+
+  <footer class="footer"><p>© 2025 PrimeCart</p></footer>
+
+  <script>
+    let cart = JSON.parse(localStorage.getItem("primecart_cart")) || [];
+    function saveCart() { localStorage.setItem("primecart_cart", JSON.stringify(cart)); }
+    function updateCartBadge() {
+      const count = cart.reduce((s, i) => s + i.qty, 0);
+      const badge = document.getElementById("cartCount");
+      if (badge) badge.innerText = count;
+    }
+    function renderCart() {
+      const container = document.getElementById("cartContainer");
+      if (!container) return;
+      if (cart.length === 0) {
+        container.innerHTML = `<div class="empty-cart"><p>Your cart is empty 🛍️</p><a href="index.html" class="continue-shopping">Continue Shopping →</a></div>`;
+        updateCartBadge();
+        return;
+      }
+      let itemsHtml = `<div class="cart-items-list">`;
+      let total = 0;
+      cart.forEach((item) => {
+        const itemTotal = item.price * item.qty;
+        total += itemTotal;
+        itemsHtml += `
+          <div class="cart-item-row" data-id="${item.id}">
+            <img src="${item.image || 'https://placehold.co/60x60?text=No+Img'}" class="cart-item-img" onerror="this.src='https://placehold.co/60x60?text=Error'">
+            <div class="cart-item-details">
+              <h4>${escapeHtml(item.name)}</h4>
+              <div class="cart-item-price">₦${Number(item.price).toLocaleString()}</div>
+            </div>
+            <div class="qty-controls">
+              <button onclick="window.changeQty('${item.id}', -1)">-</button>
+              <span>${item.qty}</span>
+              <button onclick="window.changeQty('${item.id}', 1)">+</button>
+            </div>
+            <button class="remove-item" onclick="window.removeFromCart('${item.id}')">Remove</button>
+          </div>
+        `;
+      });
+      itemsHtml += `</div><div class="cart-summary"><div class="cart-total">Total: ₦${total.toLocaleString()}</div><button class="checkout-btn-cart" onclick="window.checkout()">Proceed to Checkout</button><div><a href="index.html" class="continue-shopping">← Continue Shopping</a></div></div>`;
+      container.innerHTML = itemsHtml;
+      updateCartBadge();
+    }
+    window.changeQty = (id, delta) => {
+      const item = cart.find(i => i.id === id);
+      if (item) {
+        item.qty += delta;
+        if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+        saveCart();
+        renderCart();
+      }
+    };
+    window.removeFromCart = (id) => {
+      cart = cart.filter(i => i.id !== id);
+      saveCart();
+      renderCart();
+    };
+    window.checkout = () => { if (cart.length === 0) alert("Cart empty"); else alert("🚀 Checkout coming soon! (Payment page will be added later)."); };
+    function escapeHtml(str) { return str?.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || ""; }
+    // Theme
+    function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
+    window.toggleTheme = () => { document.body.classList.toggle("dark"); localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light"); setThemeIcon(); };
+    if (localStorage.getItem("primecart_theme") === "dark") document.body.classList.add("dark");
+    setThemeIcon();
+    document.getElementById("themeToggleBtn")?.addEventListener("click", () => window.toggleTheme());
+    window.toggleMenu = () => document.getElementById("navLinks").classList.toggle("active");
+    document.getElementById("hamburgerBtn")?.addEventListener("click", () => window.toggleMenu());
+    renderCart();
+  </script>
+</body>
+</html>
