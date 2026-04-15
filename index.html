@@ -1,51 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Store</title>
-<link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>PrimeCart | Modern Store</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .product-image {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      background: #f1f5f9;
+    }
+    body.dark .product-image {
+      background: #0f172a;
+    }
+    .card {
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
 </head>
-
 <body>
 
-<nav class="nav">
-  <div class="nav-logo">🛒 Store</div>
-  <button onclick="toggleTheme()">🌙</button>
-</nav>
+  <nav class="nav">
+    <div class="nav-logo">
+      <span class="logo-mark">🛒</span> PrimeCart
+    </div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#" class="active-nav">Home</a></li>
+      <li><a href="admin.html">Admin Studio</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn theme-toggle" id="themeToggleBtn" aria-label="Dark/Light mode">🌙</button>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+    </div>
+  </nav>
 
-<h1>Products</h1>
+  <section class="hero">
+    <div class="hero-badge">✨ new season arrival</div>
+    <h1>Shop Smart. <span class="accent-text">Buy Better.</span></h1>
+    <p>Minimalist e‑commerce powered by Supabase — lightning fast & artistic.</p>
+    <div class="hero-cta">
+      <button class="btn-primary" id="exploreBtn">Explore collection →</button>
+    </div>
+  </section>
 
-<div id="grid" class="grid"></div>
+  <section class="grid-section">
+    <div class="section-header">
+      <div class="section-label">Curated for you</div>
+      <div class="section-line"></div>
+    </div>
+    <div id="productGrid" class="product-grid">
+      <div class="loader-shimmer">Loading timeless pieces...</div>
+    </div>
+  </section>
 
-<script type="module">
-import { supabase } from "./supabase.js";
+  <footer class="footer">
+    <p>© 2025 PrimeCart — minimalist aesthetics, powerful backend.</p>
+  </footer>
 
-async function loadProducts() {
-  const { data } = await supabase.from("products").select("*");
+  <script type="module">
+    import { supabase } from "./supabase.js";
 
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
+    const grid = document.getElementById("productGrid");
+    const themeBtn = document.getElementById("themeToggleBtn");
 
-  data.forEach(p => {
-    grid.innerHTML += `
-      <div class="card">
-        <img src="${p.image_url}" />
-        <h3>${p.name}</h3>
-        <p>${p.description}</p>
-        <strong>₦${p.price}</strong>
-      </div>
-    `;
-  });
-}
+    async function loadProducts() {
+      try {
+        grid.innerHTML = `<div class="loader-shimmer">✨ Curating collection...</div>`;
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .order("id", { ascending: false });
 
-loadProducts();
+        if (error) throw error;
 
-/* THEME */
-window.toggleTheme = function(){
-  document.body.classList.toggle("dark");
-};
-</script>
+        if (!data || data.length === 0) {
+          grid.innerHTML = `<div class="empty-state">🎨 No products yet — visit admin to add masterpieces.</div>`;
+          return;
+        }
 
+        grid.innerHTML = "";
+        data.forEach(product => {
+          const card = document.createElement("div");
+          card.className = "card";
+          const imageUrl = product.image_url || "https://placehold.co/400x300?text=No+Image";
+          card.innerHTML = `
+            <img src="${escapeHtml(imageUrl)}" class="product-image" alt="${escapeHtml(product.name)}" loading="lazy" onerror="this.src='https://placehold.co/400x300?text=Image+Error'">
+            <div class="card-icon">✨</div>
+            <div class="card-title">${escapeHtml(product.name)}</div>
+            <div class="card-desc">${escapeHtml(product.description?.slice(0, 80) || "Premium quality item")}</div>
+            <div class="price-tag">₦${Number(product.price).toLocaleString()}</div>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (err) {
+        console.error(err);
+        grid.innerHTML = `<div class="error-state">⚠️ Failed to load products. Check Supabase connection.</div>`;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    // Theme handling
+    function setThemeIcon() {
+      const isDark = document.body.classList.contains("dark");
+      if (themeBtn) themeBtn.textContent = isDark ? "☀️" : "🌙";
+    }
+
+    window.toggleTheme = function() {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light");
+      setThemeIcon();
+    };
+
+    const savedTheme = localStorage.getItem("primecart_theme");
+    if (savedTheme === "dark") document.body.classList.add("dark");
+    setThemeIcon();
+    if (themeBtn) themeBtn.addEventListener("click", () => window.toggleTheme());
+
+    window.toggleMenu = function() {
+      document.getElementById("navLinks").classList.toggle("active");
+    };
+    document.getElementById("hamburgerBtn")?.addEventListener("click", () => window.toggleMenu());
+    document.getElementById("exploreBtn")?.addEventListener("click", () => {
+      document.querySelector(".grid-section")?.scrollIntoView({ behavior: "smooth" });
+    });
+
+    document.querySelectorAll(".nav-links a").forEach(link => {
+      link.addEventListener("click", () => document.getElementById("navLinks")?.classList.remove("active"));
+    });
+
+    loadProducts();
+  </script>
 </body>
 </html>
