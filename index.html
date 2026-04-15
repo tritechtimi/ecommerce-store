@@ -4,13 +4,26 @@
   <title>My Store</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
+  <!-- NAVIGATION -->
+  <nav style="padding:15px; background:black; color:white; display:flex; justify-content:space-between;">
+    <div><b>My Store</b></div>
+
+    <div>
+      <a href="index.html" style="color:white; margin-right:10px;">Home</a>
+      <a href="admin.html" style="color:white;">Admin</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
   <header class="hero">
     <h1>Welcome to My Store</h1>
     <p>Premium products at affordable prices</p>
   </header>
 
+  <!-- PRODUCTS -->
   <div id="products" class="grid"></div>
 
   <script type="module">
@@ -24,11 +37,16 @@
 
       const container = document.getElementById("products");
 
+      if (!data || data.length === 0) {
+        container.innerHTML = "<p>No products yet</p>";
+        return;
+      }
+
       data.forEach(p => {
         container.innerHTML += `
           <div class="card">
             <h3>${p.name}</h3>
-            <p>${p.description}</p>
+            <p>${p.description || ""}</p>
             <b>₦${p.price}</b>
           </div>
         `;
