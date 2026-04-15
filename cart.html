@@ -69,7 +69,7 @@
           </div>
         `;
       });
-      itemsHtml += `</div><div class="cart-summary"><div class="cart-total">Total: ₦${total.toLocaleString()}</div><a href="checkout.html" class="checkout-btn-cart" style="display:inline-block; text-decoration:none; text-align:center;">Proceed to Checkout</a><div><a href="index.html" class="continue-shopping">← Continue Shopping</a></div></div>`;
+      itemsHtml += `</div><div class="cart-summary"><div class="cart-total">Total: ₦${total.toLocaleString()}</div><a href="shipping.html" class="checkout-btn-cart" style="display:inline-block; text-decoration:none; text-align:center;">Proceed to Checkout</a><div><a href="index.html" class="continue-shopping">← Continue Shopping</a></div></div>`;
       container.innerHTML = itemsHtml;
       updateCartBadge();
     }
@@ -88,7 +88,6 @@
       renderCart();
     };
     function escapeHtml(str) { return str?.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || ""; }
-    // Theme
     function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
     window.toggleTheme = () => { document.body.classList.toggle("dark"); localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light"); setThemeIcon(); };
     if (localStorage.getItem("primecart_theme") === "dark") document.body.classList.add("dark");
