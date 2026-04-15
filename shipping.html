@@ -148,15 +148,11 @@
 
   <footer class="footer"><p>© 2025 PrimeCart</p></footer>
 
-  <script type="module">
-    import { supabase } from "./supabase.js";
-
+  <script>
     let cart = JSON.parse(localStorage.getItem("primecart_cart")) || [];
     let selectedMethod = "pickup";
     let shippingFee = 0;
-    let shippingLocation = "";
-    let country = "nigeria";
-
+    
     function updateCartBadge() {
       const count = cart.reduce((s, i) => s + i.qty, 0);
       const badge = document.getElementById("cartCount");
@@ -186,7 +182,7 @@
         document.getElementById("deliveryFeeDisplay").innerText = "₦0";
         document.getElementById("locationGroup").style.display = "none";
       } else {
-        country = document.getElementById("countrySelect").value;
+        const country = document.getElementById("countrySelect").value;
         shippingFee = country === "nigeria" ? 2000 : 3000;
         document.getElementById("deliveryFeeDisplay").innerText = `₦${shippingFee.toLocaleString()}`;
         document.getElementById("locationGroup").style.display = "block";
@@ -194,7 +190,6 @@
       renderCartSummary();
     }
 
-    // Event listeners
     document.getElementById("pickupOption").addEventListener("click", () => {
       selectedMethod = "pickup";
       document.getElementById("pickupOption").classList.add("selected");
@@ -223,19 +218,12 @@
         method: selectedMethod,
         fee: shippingFee,
         location: selectedMethod === "delivery" ? document.getElementById("deliveryLocation").value.trim() : null,
-        country: selectedMethod === "delivery" ? country : null
+        country: selectedMethod === "delivery" ? document.getElementById("countrySelect").value : "nigeria"
       };
       localStorage.setItem("shipping_data", JSON.stringify(shippingData));
       window.location.href = "checkout.html";
     });
 
-    // Initial load
-    updateCartBadge();
-    renderCartSummary();
-    document.getElementById("pickupOption").classList.add("selected");
-    updateShippingFee();
-
-    // Theme & menu
     function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
     window.toggleTheme = () => { document.body.classList.toggle("dark"); localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light"); setThemeIcon(); };
     if (localStorage.getItem("primecart_theme") === "dark") document.body.classList.add("dark");
@@ -243,6 +231,11 @@
     document.getElementById("themeToggleBtn")?.addEventListener("click", () => window.toggleTheme());
     window.toggleMenu = () => document.getElementById("navLinks").classList.toggle("active");
     document.getElementById("hamburgerBtn")?.addEventListener("click", () => window.toggleMenu());
+
+    updateCartBadge();
+    renderCartSummary();
+    document.getElementById("pickupOption").classList.add("selected");
+    updateShippingFee();
   </script>
 </body>
 </html>
