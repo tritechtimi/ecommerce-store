@@ -7,64 +7,73 @@
 
 <body>
 
-  <nav>
+  <nav class="nav">
     <a href="index.html">← Back to Store</a>
+    <h2>Admin Panel</h2>
   </nav>
 
   <div class="container">
-    <h1>Admin Dashboard</h1>
 
-    <input id="name" placeholder="Product Name">
-    <input id="price" placeholder="Price">
-    <textarea id="desc" placeholder="Description"></textarea>
+    <div class="card-form">
+      <h1>Add Product</h1>
 
-    <button onclick="addProduct()">➕ Add Product</button>
+      <input id="name" placeholder="Product Name">
+      <input id="price" placeholder="Price">
+      <textarea id="desc" placeholder="Description"></textarea>
+
+      <button onclick="addProduct()">➕ Add Product</button>
+    </div>
+
   </div>
 
   <script type="module">
     import { supabase } from "./supabase.js";
 
     window.addProduct = async function () {
+
       const name = document.getElementById("name").value;
       const price = document.getElementById("price").value;
       const desc = document.getElementById("desc").value;
 
-      // VALIDATION
       if (!name || !price) {
         alert("Name and price are required");
         return;
       }
 
-      console.log("Sending to Supabase...", { name, price, desc });
+      // AUTO SLUG FIX
+      const slug = name
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+
+      console.log("Adding product:", { name, price, desc, slug });
 
       const { data, error } = await supabase
         .from("products")
         .insert([
           {
-            name: name,
+            name,
             price: Number(price),
             description: desc,
+            slug,
             is_active: true,
             created_at: new Date().toISOString()
           }
         ])
         .select();
 
-      // 🔴 DEBUG SECTION (THIS IS IMPORTANT)
       if (error) {
-        console.log("❌ SUPABASE ERROR:", error);
-        alert("Error: " + error.message);
-        return;
+        console.log("ERROR:", error);
+        alert(error.message);
+      } else {
+        alert("Product added successfully!");
+
+        document.getElementById("name").value = "";
+        document.getElementById("price").value = "";
+        document.getElementById("desc").value = "";
       }
-
-      console.log("✅ SUCCESS:", data);
-      alert("Product added successfully!");
-
-      // CLEAR FIELDS
-      document.getElementById("name").value = "";
-      document.getElementById("price").value = "";
-      document.getElementById("desc").value = "";
     };
+
   </script>
 
 </body>
