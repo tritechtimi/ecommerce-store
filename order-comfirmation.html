@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Order Confirmed | PrimeCart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .confirmation {
+      max-width: 600px;
+      margin: 4rem auto;
+      text-align: center;
+      background: white;
+      border-radius: 28px;
+      padding: 2rem;
+      border: 1px solid #eef2f8;
+    }
+    body.dark .confirmation {
+      background: #1e293b;
+      border-color: #334155;
+    }
+    .success-icon {
+      font-size: 4rem;
+      background: #22c55e20;
+      display: inline-block;
+      width: 80px;
+      height: 80px;
+      line-height: 80px;
+      border-radius: 50%;
+      margin-bottom: 1rem;
+    }
+    .order-number {
+      background: #eef2f8;
+      padding: 8px 16px;
+      border-radius: 40px;
+      display: inline-block;
+      margin: 1rem 0;
+    }
+    .btn-home {
+      background: #2563eb;
+      color: white;
+      padding: 10px 24px;
+      border-radius: 40px;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo"><span class="logo-mark">🛒</span> PrimeCart</div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="admin.html">Admin Studio</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn theme-toggle" id="themeToggleBtn">🌙</button>
+      <a href="cart.html" class="cart-icon-btn">🛒 <span id="cartCount">0</span></a>
+      <button class="hamburger" id="hamburgerBtn">☰</button>
+    </div>
+  </nav>
+
+  <div class="confirmation">
+    <div class="success-icon">✅</div>
+    <h2>Order Confirmed!</h2>
+    <p>Thank you for shopping with PrimeCart.</p>
+    <div class="order-number" id="orderNumberDisplay"></div>
+    <p>We'll send you an email when your order ships.</p>
+    <a href="index.html" class="btn-home">Continue Shopping</a>
+  </div>
+
+  <footer class="footer"><p>© 2025 PrimeCart</p></footer>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderNumber = urlParams.get('order');
+    if (orderNumber) {
+      document.getElementById("orderNumberDisplay").innerText = orderNumber;
+    } else {
+      document.getElementById("orderNumberDisplay").innerText = "Order placed";
+    }
+
+    // Theme & menu (lightweight)
+    function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
+    window.toggleTheme = () => { document.body.classList.toggle("dark"); localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light"); setThemeIcon(); };
+    if (localStorage.getItem("primecart_theme") === "dark") document.body.classList.add("dark");
+    setThemeIcon();
+    document.getElementById("themeToggleBtn")?.addEventListener("click", () => window.toggleTheme());
+    window.toggleMenu = () => document.getElementById("navLinks").classList.toggle("active");
+    document.getElementById("hamburgerBtn")?.addEventListener("click", () => window.toggleMenu());
+    // Cart badge (empty after order)
+    document.getElementById("cartCount").innerText = "0";
+  </script>
+</body>
+</html>
