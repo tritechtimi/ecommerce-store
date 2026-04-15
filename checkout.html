@@ -15,9 +15,7 @@
       grid-template-columns: 1fr 0.8fr;
       gap: 2rem;
     }
-    @media (max-width: 768px) {
-      .checkout-container { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 768px) { .checkout-container { grid-template-columns: 1fr; } }
     .checkout-form, .order-summary {
       background: white;
       border-radius: 28px;
@@ -93,30 +91,17 @@
     <div class="checkout-form">
       <h2>Delivery Information</h2>
       <form id="checkoutForm">
-        <div class="form-group">
-          <label>Full name *</label>
-          <input type="text" id="fullName" required>
-        </div>
-        <div class="form-group">
-          <label>Email *</label>
-          <input type="email" id="email" required>
-        </div>
-        <div class="form-group">
-          <label>Phone number</label>
-          <input type="tel" id="phone">
-        </div>
-        <div class="form-group">
-          <label>Shipping address *</label>
-          <textarea id="address" rows="3" required></textarea>
-        </div>
+        <div class="form-group"><label>Full name *</label><input type="text" id="fullName" required></div>
+        <div class="form-group"><label>Email *</label><input type="email" id="email" required></div>
+        <div class="form-group"><label>Phone number</label><input type="tel" id="phone"></div>
+        <div class="form-group"><label>Shipping address *</label><textarea id="address" rows="3" required></textarea></div>
       </form>
     </div>
-
     <div class="order-summary">
       <h2>Order Summary</h2>
       <div id="summaryItems"></div>
       <div class="summary-total">Total: ₦<span id="summaryTotal">0</span></div>
-      <button class="place-order-btn" id="placeOrderBtn">Place Order</button>
+      <button class="place-order-btn" id="placeOrderBtn">Proceed to Payment</button>
       <a href="cart.html" class="back-to-cart">← Back to cart</a>
     </div>
   </div>
@@ -148,7 +133,6 @@
       totalSpan.innerText = total.toLocaleString();
     }
 
-    // Generate unique order number
     function generateOrderNumber() {
       return 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
     }
@@ -187,7 +171,7 @@
             customer_phone: phone,
             shipping_address: address,
             total_amount: totalAmount,
-            status: "pending"
+            status: "pending"  // initial status
           }])
           .select()
           .single();
@@ -202,29 +186,27 @@
           quantity: item.qty,
           price: item.price
         }));
-
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
         if (itemsError) throw itemsError;
 
-        // Decrease stock for each product
+        // Decrease stock
         for (const item of cart) {
           const { data: product } = await supabase.from("products").select("stock_quantity").eq("id", item.id).single();
           const newStock = (product.stock_quantity || 0) - item.qty;
           await supabase.from("products").update({ stock_quantity: newStock }).eq("id", item.id);
         }
 
-        // Clear cart
+        // Clear local cart
         localStorage.removeItem("primecart_cart");
         cart = [];
 
-        alert(`Order placed successfully!\nOrder Number: ${orderNumber}`);
-        window.location.href = "order-confirmation.html?order=" + orderNumber;
+        // Redirect to payment page with order ID
+        window.location.href = `payment.html?order_id=${order.id}`;
       } catch (err) {
-        alert("Error placing order: " + err.message);
+        alert("Error creating order: " + err.message);
         console.error(err);
-      } finally {
         button.disabled = false;
-        button.textContent = "Place Order";
+        button.textContent = "Proceed to Payment";
       }
     }
 
@@ -239,14 +221,12 @@
     window.toggleMenu = () => document.getElementById("navLinks").classList.toggle("active");
     document.getElementById("hamburgerBtn")?.addEventListener("click", () => window.toggleMenu());
 
-    // Update cart badge
     function updateCartBadge() {
       const count = cart.reduce((s, i) => s + i.qty, 0);
       const badge = document.getElementById("cartCount");
       if (badge) badge.innerText = count;
     }
     updateCartBadge();
-
     renderSummary();
     document.getElementById("placeOrderBtn").addEventListener("click", placeOrder);
   </script>
