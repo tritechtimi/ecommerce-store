@@ -1,148 +1,141 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>PrimeCart | Modern Store</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <nav class="nav">
-    <div class="nav-logo"><span class="logo-mark">🛒</span> PrimeCart</div>
-    <ul class="nav-links" id="navLinks">
-      <li><a href="index.html" class="active-nav">Home</a></li>
-      <li><a href="admin.html">Admin Studio</a></li>
-    </ul>
-    <div class="nav-actions">
-      <button class="icon-btn theme-toggle" id="themeToggleBtn">🌙</button>
-      <a href="cart.html" class="cart-icon-btn">🛒 <span id="cartCount">0</span></a>
-      <button class="hamburger" id="hamburgerBtn">☰</button>
-    </div>
-  </nav>
+<script type="module">
+  import { supabase } from "./supabase.js";
 
-  <section class="hero">
-    <div class="hero-badge">✨ new season arrival</div>
-    <h1>Shop Smart. <span class="accent-text">Buy Better.</span></h1>
-    <p>Minimalist e‑commerce powered by Supabase — lightning fast & artistic.</p>
-    <div class="hero-cta"><button class="btn-primary" id="exploreBtn">Explore collection →</button></div>
-  </section>
-
-  <section class="grid-section">
-    <div class="section-header"><div class="section-label">Curated for you</div><div class="section-line"></div></div>
-    <div id="productGrid" class="product-grid"><div class="loader-shimmer">Loading timeless pieces...</div></div>
-  </section>
-
-  <footer class="footer"><p>© 2025 PrimeCart — minimalist aesthetics, powerful backend.</p></footer>
-
-  <script type="module">
-    import { supabase } from "./supabase.js";
-
-    // Cart helpers
-    let cart = JSON.parse(localStorage.getItem("primecart_cart")) || [];
-    function saveCart() { localStorage.setItem("primecart_cart", JSON.stringify(cart)); }
-    function updateCartBadge() {
-      const count = cart.reduce((s, i) => s + i.qty, 0);
-      const badge = document.getElementById("cartCount");
-      if (badge) badge.innerText = count;
-    }
-    window.addToCart = function(product, qty = 1) {
-      const existing = cart.find(i => i.id === product.id);
-      if (existing) existing.qty += qty;
-      else cart.push({ id: product.id, name: product.name, price: Number(product.price), qty, image: product.image_urls?.[0] || "" });
-      saveCart();
-      updateCartBadge();
-      alert(`${product.name} added to cart!`);
-    };
-
-    // Helper: rating stars HTML
-    function renderStars(rating) {
-      const full = Math.floor(rating);
-      const half = rating % 1 >= 0.5;
-      let stars = '';
-      for (let i = 0; i < full; i++) stars += '<span class="star-filled">★</span>';
-      if (half) stars += '<span class="star-half">★</span>';
-      for (let i = stars.length; i < 5; i++) stars += '<span class="star-empty">★</span>';
-      return `<div class="rating-stars">${stars}<span class="rating-value">(${rating.toFixed(1)})</span></div>`;
-    }
-
-    // Helper: stock scarcity bar HTML
-    function renderStockBar(stock, maxStock = 20) {
-      if (stock === undefined || stock === null) return '';
-      let percent = Math.min(100, (stock / maxStock) * 100);
-      let barColor = '#22c55e'; // green
-      let statusText = `${stock} left`;
-      if (stock <= 0) {
-        percent = 0;
-        barColor = '#ef4444';
-        statusText = 'Out of stock';
-      } else if (stock <= 3) {
-        barColor = '#ef4444';
-        statusText = `Only ${stock} left!`;
-      } else if (stock <= 5) {
-        barColor = '#f97316';
-        statusText = `Only ${stock} left`;
-      } else if (stock <= 10) {
-        barColor = '#eab308';
-        statusText = `${stock} left`;
-      } else {
-        statusText = `${stock} in stock`;
-      }
-      return `
-        <div class="stock-bar-container">
-          <div class="stock-bar-fill" style="width: ${percent}%; background: ${barColor};"></div>
-        </div>
-        <div class="stock-status-text" style="color: ${barColor};">${statusText}</div>
-      `;
-    }
-
-    // Load products
-    const grid = document.getElementById("productGrid");
-    async function loadProducts() {
-      try {
-        grid.innerHTML = `<div class="loader-shimmer">✨ Curating collection...</div>`;
-        const { data, error } = await supabase.from("products").select("*").order("id", { ascending: false });
-        if (error) throw error;
-        if (!data || data.length === 0) { grid.innerHTML = `<div class="empty-state">🎨 No products yet — visit admin to add masterpieces.</div>`; return; }
-        grid.innerHTML = "";
-        data.forEach(product => {
-          const firstImage = (product.image_urls && product.image_urls[0]) || "https://placehold.co/600x400?text=No+Image";
-          let stockClass = "stock-instock";
-          let stockText = "In Stock";
-          if (product.stock_quantity <= 0) { stockClass = "stock-out"; stockText = "Out of Stock"; }
-          else if (product.stock_quantity < 5) { stockClass = "stock-low"; stockText = `Only ${product.stock_quantity} left`; }
-          const card = document.createElement("div");
-          card.className = "product-card";
-          card.innerHTML = `
-            <div class="card-image"><img src="${escapeHtml(firstImage)}" alt="${escapeHtml(product.name)}" loading="lazy" onerror="this.src='https://placehold.co/600x400?text=Error'"></div>
-            <div class="card-content">
-              <div><span class="product-category">${escapeHtml(product.category || "Uncategorized")}</span></div>
-              <h3 class="product-title">${escapeHtml(product.name)}</h3>
-              ${renderStars(product.rating_avg || 0)}
-              <div class="product-price">₦${Number(product.price).toLocaleString()}</div>
-              ${renderStockBar(product.stock_quantity)}
-              <a href="product.html?id=${product.id}" class="view-details-btn">View Details</a>
-            </div>
-          `;
-          grid.appendChild(card);
-        });
-      } catch (err) { grid.innerHTML = `<div class="error-state">⚠️ Failed to load products.</div>`; }
-    }
-
-    function escapeHtml(str) { return str?.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || ""; }
-
-    // Theme & mobile menu
-    function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
-    window.toggleTheme = () => { document.body.classList.toggle("dark"); localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light"); setThemeIcon(); };
-    if (localStorage.getItem("primecart_theme") === "dark") document.body.classList.add("dark");
-    setThemeIcon();
-    document.getElementById("themeToggleBtn")?.addEventListener("click", () => window.toggleTheme());
-    window.toggleMenu = () => document.getElementById("navLinks").classList.toggle("active");
-    document.getElementById("hamburgerBtn")?.addEventListener("click", () => window.toggleMenu());
-    document.getElementById("exploreBtn")?.addEventListener("click", () => document.querySelector(".grid-section")?.scrollIntoView({ behavior: "smooth" }));
-
+  // Cart helpers (keep your existing cart code)
+  let cart = JSON.parse(localStorage.getItem("primecart_cart")) || [];
+  function saveCart() { localStorage.setItem("primecart_cart", JSON.stringify(cart)); }
+  function updateCartBadge() {
+    const count = cart.reduce((s, i) => s + i.qty, 0);
+    const badge = document.getElementById("cartCount");
+    if (badge) badge.innerText = count;
+  }
+  window.addToCart = function(product, qty = 1) {
+    const existing = cart.find(i => i.id === product.id);
+    if (existing) existing.qty += qty;
+    else cart.push({ id: product.id, name: product.name, price: Number(product.price), qty, image: product.image_urls?.[0] || "" });
+    saveCart();
     updateCartBadge();
-    loadProducts();
-  </script>
-</body>
-</html>
+    alert(`${product.name} added to cart!`);
+  };
+
+  // Helper: rating stars
+  function renderStars(rating) {
+    const full = Math.floor(rating);
+    const half = rating % 1 >= 0.5;
+    let stars = '';
+    for (let i = 0; i < full; i++) stars += '<span class="star-filled">★</span>';
+    if (half) stars += '<span class="star-half">★</span>';
+    for (let i = stars.length; i < 5; i++) stars += '<span class="star-empty">★</span>';
+    return `<div class="rating-stars">${stars}<span class="rating-value">(${rating.toFixed(1)})</span></div>`;
+  }
+
+  // ---------- HOT BADGE LOGIC ----------
+  function getProductBadge(avgRating, reviewCount) {
+    if (reviewCount >= 5 && avgRating >= 4) {
+      return { text: "🔥 Hot", className: "badge-hot" };
+    }
+    if (reviewCount >= 2 && avgRating >= 3.5) {
+      return { text: "⭐ Popular", className: "badge-popular" };
+    }
+    return { text: "🆕 New", className: "badge-new" };
+  }
+
+  // Popularity score: sales_count (60%) + reviews (30%) + rating (10% scaled)
+  function getPopularityScore(sales, reviews, rating) {
+    return (sales * 0.6) + (reviews * 0.3) + (rating * 10);
+  }
+
+  // Load products with reviews count
+  const grid = document.getElementById("productGrid");
+  async function loadProducts() {
+    try {
+      grid.innerHTML = `<div class="loader-shimmer">✨ Curating collection...</div>`;
+
+      // 1. Fetch all products
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("*")
+        .order("id", { ascending: false });
+      if (productsError) throw productsError;
+
+      if (!products || products.length === 0) {
+        grid.innerHTML = `<div class="empty-state">🎨 No products yet — visit admin to add masterpieces.</div>`;
+        return;
+      }
+
+      // 2. Fetch review counts per product
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from("reviews")
+        .select("product_id, rating");
+      if (reviewsError) console.warn("Could not load reviews", reviewsError);
+
+      const reviewMap = new Map();
+      if (reviewsData) {
+        reviewsData.forEach(r => {
+          if (!reviewMap.has(r.product_id)) {
+            reviewMap.set(r.product_id, { count: 0, sum: 0 });
+          }
+          const entry = reviewMap.get(r.product_id);
+          entry.count++;
+          entry.sum += r.rating;
+        });
+      }
+
+      // 3. Enrich products with review data and popularity score
+      const enriched = products.map(p => {
+        const rev = reviewMap.get(p.id) || { count: 0, sum: 0 };
+        const avgRating = rev.count > 0 ? rev.sum / rev.count : (p.rating_avg || 0);
+        const reviewCount = rev.count;
+        const sales = p.sales_count || 0;
+        const score = getPopularityScore(sales, reviewCount, avgRating);
+        return { ...p, avgRating, reviewCount, score };
+      });
+
+      // 4. Sort by popularity (highest first)
+      enriched.sort((a, b) => b.score - a.score);
+
+      // 5. Render products
+      grid.innerHTML = "";
+      enriched.forEach(product => {
+        const firstImage = (product.image_urls && product.image_urls[0]) || "https://placehold.co/600x400?text=No+Image";
+        const badge = getProductBadge(product.avgRating, product.reviewCount);
+        const stockClass = product.stock_quantity <= 0 ? "stock-out" : (product.stock_quantity < 5 ? "stock-low" : "stock-instock");
+        const stockText = product.stock_quantity <= 0 ? "Out of Stock" : (product.stock_quantity < 5 ? `Only ${product.stock_quantity} left` : `${product.stock_quantity} in stock`);
+        
+        const card = document.createElement("div");
+        card.className = "product-card";
+        card.innerHTML = `
+          <div class="card-image"><img src="${escapeHtml(firstImage)}" alt="${escapeHtml(product.name)}" loading="lazy" onerror="this.src='https://placehold.co/600x400?text=Error'"></div>
+          <div class="card-content">
+            <div class="badge ${badge.className}">${badge.text}</div>
+            <div><span class="product-category">${escapeHtml(product.category || "Uncategorized")}</span><span class="stock-badge ${stockClass}">${stockText}</span></div>
+            <h3 class="product-title">${escapeHtml(product.name)}</h3>
+            ${renderStars(product.avgRating)}
+            <div class="product-price">₦${Number(product.price).toLocaleString()}</div>
+            <div class="sales-info">📊 ${product.sales_count || 0} sold</div>
+            <a href="product.html?id=${product.id}" class="view-details-btn">View Details</a>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    } catch (err) {
+      console.error(err);
+      grid.innerHTML = `<div class="error-state">⚠️ Failed to load products.</div>`;
+    }
+  }
+
+  function escapeHtml(str) { return str?.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || ""; }
+
+  // Theme & mobile menu (keep your existing)
+  function setThemeIcon() { const isDark = document.body.classList.contains("dark"); const btn = document.getElementById("themeToggleBtn"); if(btn) btn.textContent = isDark ? "☀️" : "🌙"; }
+  window.toggleTheme = () => { document.body.classList.toggle("dark"); localStorage.setItem("primecart_theme", document.body.classList.contains("dark") ? "dark" : "light"); setThemeIcon(); };
+  if (localStorage.getItem("primecart_theme") === "dark") document.body.classList.add("dark");
+  setThemeIcon();
+  document.getElementById("themeToggleBtn")?.addEventListener("click", () => window.toggleTheme());
+  window.toggleMenu = () => document.getElementById("navLinks").classList.toggle("active");
+  document.getElementById("hamburgerBtn")?.addEventListener("click", () => window.toggleMenu());
+  document.getElementById("exploreBtn")?.addEventListener("click", () => document.querySelector(".grid-section")?.scrollIntoView({ behavior: "smooth" }));
+
+  updateCartBadge();
+  loadProducts();
+</script>
