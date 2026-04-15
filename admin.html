@@ -1,71 +1,390 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Admin - PrimeCart</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-</head>
-
-<body>
-
-<nav class="nav">
-  <div class="nav-logo">Admin Panel</div>
-</nav>
-
-<section class="admin-container">
-
-  <h2>Add Product</h2>
-
-  <input id="name" placeholder="Product name">
-  <input id="price" placeholder="Price">
-  <textarea id="desc" placeholder="Description"></textarea>
-
-  <button onclick="addProduct()">Save Product</button>
-
-</section>
-
-<script type="module">
-import { supabase } from "./supabase.js";
-
-window.addProduct = async function () {
-
-  const name = document.getElementById("name").value;
-  const price = document.getElementById("price").value;
-  const desc = document.getElementById("desc").value;
-
-  if (!name || !price) {
-    alert("Fill required fields");
-    return;
-  }
-
-  const slug = name.toLowerCase().replace(/\s+/g, "-");
-
-  const { error } = await supabase
-    .from("products")
-    .insert([
-      {
-        name,
-        price: Number(price),
-        description: desc,
-        slug,
-        is_active: true
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Admin Studio | PrimeCart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* admin-specific fine-tuning */
+    .admin-dashboard {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+    .admin-split {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+    .form-card, .product-manager-card {
+      background: var(--card-bg, white);
+      border-radius: 28px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05);
+      transition: all 0.2s ease;
+      border: 1px solid var(--border-color, #eef2f6);
+      overflow: hidden;
+    }
+    body.dark .form-card, body.dark .product-manager-card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+    .card-header {
+      padding: 1.25rem 1.8rem;
+      background: rgba(37, 99, 235, 0.03);
+      border-bottom: 1px solid var(--border-color, #eef2f6);
+      font-weight: 700;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card-header span {
+      background: #2563eb10;
+      padding: 6px 12px;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #2563eb;
+    }
+    .form-body, .list-body {
+      padding: 1.8rem;
+    }
+    .input-group {
+      margin-bottom: 1.2rem;
+    }
+    .input-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      color: #4b5563;
+    }
+    body.dark .input-group label {
+      color: #cbd5e1;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      border: 1.5px solid #e2e8f0;
+      background: #ffffff;
+      transition: 0.2s;
+      font-size: 0.95rem;
+    }
+    body.dark input, body.dark textarea {
+      background: #0f172a;
+      border-color: #334155;
+      color: #f1f5f9;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+    }
+    .btn-save {
+      background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+      border: none;
+      padding: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      border-radius: 40px;
+      transition: transform 0.1s ease;
+      cursor: pointer;
+      color: white;
+      width: 100%;
+    }
+    .btn-save:hover {
+      transform: scale(0.98);
+      background: #1d4ed8;
+    }
+    .product-table {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .product-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--row-bg, #f9fafb);
+      padding: 12px 18px;
+      border-radius: 20px;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    body.dark .product-row {
+      background: #111827;
+      border-color: #2d3a4e;
+    }
+    .product-row:hover {
+      border-color: #2563eb;
+      transform: translateX(4px);
+    }
+    .product-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .product-name {
+      font-weight: 700;
+    }
+    .product-price {
+      font-size: 0.85rem;
+      color: #2563eb;
+      font-weight: 600;
+    }
+    .delete-btn {
+      background: none;
+      border: 1px solid #ef444430;
+      color: #ef4444;
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      width: auto;
+      transition: 0.2s;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+    }
+    .empty-admin-list {
+      text-align: center;
+      padding: 2rem;
+      color: #6c757d;
+    }
+    @media (max-width: 640px) {
+      .product-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
       }
-    ]);
+      .delete-btn {
+        align-self: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-logo">
+      <span class="logo-mark">🎨</span> Admin Studio
+    </div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Storefront</a></li>
+      <li><a href="#" class="active-nav">Inventory</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn theme-toggle" id="adminThemeBtn">🌙</button>
+      <button class="hamburger" id="adminHamburger">☰</button>
+    </div>
+  </nav>
 
-  if (error) {
-    alert(error.message);
-    console.log(error);
-  } else {
-    alert("Product added successfully!");
-    document.getElementById("name").value = "";
-    document.getElementById("price").value = "";
-    document.getElementById("desc").value = "";
-  }
-};
-</script>
+  <div class="admin-dashboard">
+    <div class="admin-split">
+      <!-- ADD PRODUCT CARD -->
+      <div class="form-card">
+        <div class="card-header">
+          ✨ Add new masterpiece <span>creative studio</span>
+        </div>
+        <div class="form-body">
+          <div class="input-group">
+            <label>Product name *</label>
+            <input type="text" id="prodName" placeholder="e.g., Minimalist Leather Backpack" autocomplete="off">
+          </div>
+          <div class="input-group">
+            <label>Price (₦) *</label>
+            <input type="number" id="prodPrice" placeholder="49900">
+          </div>
+          <div class="input-group">
+            <label>Description</label>
+            <textarea id="prodDesc" rows="3" placeholder="Premium materials, eco-friendly design..."></textarea>
+          </div>
+          <button class="btn-save" id="saveProductBtn">➕ Publish product</button>
+        </div>
+      </div>
 
+      <!-- PRODUCT MANAGEMENT LIST -->
+      <div class="product-manager-card">
+        <div class="card-header">
+          📦 Manage catalog <span>real-time sync</span>
+        </div>
+        <div class="list-body">
+          <div id="adminProductList" class="product-table">
+            <div class="loader-shimmer">Loading inventory...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer" style="margin-top: 3rem;">
+    <p>PrimeCart Admin · Seamless product orchestration</p>
+  </footer>
+
+  <script type="module">
+    import { supabase } from "./supabase.js";
+
+    // DOM elements
+    const nameInput = document.getElementById("prodName");
+    const priceInput = document.getElementById("prodPrice");
+    const descInput = document.getElementById("prodDesc");
+    const saveBtn = document.getElementById("saveProductBtn");
+    const adminListContainer = document.getElementById("adminProductList");
+    const themeBtnAdmin = document.getElementById("adminThemeBtn");
+    const hamburgerAdmin = document.getElementById("adminHamburger");
+
+    // ---------- HELPER: fetch & render products for admin ----------
+    async function fetchAndRenderAdminProducts() {
+      try {
+        adminListContainer.innerHTML = `<div class="loader-shimmer">⏳ fetching products...</div>`;
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .order("id", { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          adminListContainer.innerHTML = `<div class="empty-admin-list">✨ No products yet. Add your first creation above.</div>`;
+          return;
+        }
+
+        adminListContainer.innerHTML = "";
+        data.forEach(product => {
+          const row = document.createElement("div");
+          row.className = "product-row";
+          row.dataset.id = product.id;
+          row.innerHTML = `
+            <div class="product-info">
+              <div class="product-name">${escapeHtml(product.name)}</div>
+              <div class="product-price">₦${Number(product.price).toLocaleString()}</div>
+              <div class="product-desc-sm" style="font-size:0.7rem; color:gray;">${escapeHtml(product.description?.slice(0, 60) || "no description")}</div>
+            </div>
+            <button class="delete-btn" data-id="${product.id}">🗑 Delete</button>
+          `;
+          adminListContainer.appendChild(row);
+        });
+
+        // attach delete events
+        document.querySelectorAll(".delete-btn").forEach(btn => {
+          btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const productId = btn.getAttribute("data-id");
+            if (confirm("Permanently remove this product?")) {
+              const { error } = await supabase.from("products").delete().eq("id", productId);
+              if (error) {
+                alert("Delete failed: " + error.message);
+              } else {
+                // re-render list
+                await fetchAndRenderAdminProducts();
+                // also refresh store if needed (optional but friendly)
+              }
+            }
+          });
+        });
+      } catch (err) {
+        console.error(err);
+        adminListContainer.innerHTML = `<div class="error-state">⚠️ Failed to load products. Check Supabase.</div>`;
+      }
+    }
+
+    // ---------- ADD PRODUCT (with slug & validation) ----------
+    window.addProduct = async function() {
+      const name = nameInput.value.trim();
+      const price = priceInput.value.trim();
+      const description = descInput.value.trim();
+
+      if (!name || !price) {
+        alert("❌ Product name and price are required.");
+        return;
+      }
+      const priceNum = Number(price);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        alert("Please enter a valid price (positive number).");
+        return;
+      }
+
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const finalSlug = slug || "product-" + Date.now();
+
+      const { error } = await supabase.from("products").insert([
+        {
+          name: name,
+          price: priceNum,
+          description: description || "",
+          slug: finalSlug,
+          is_active: true
+        }
+      ]);
+
+      if (error) {
+        alert("Supabase error: " + error.message);
+        console.error(error);
+      } else {
+        // Success animation & reset
+        nameInput.value = "";
+        priceInput.value = "";
+        descInput.value = "";
+        alert("🎉 Product added successfully!");
+        await fetchAndRenderAdminProducts();   // refresh admin list
+      }
+    };
+
+    if (saveBtn) saveBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.addProduct();
+    });
+
+    // escape helper
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    // ---------- THEME consistency (same as store) ----------
+    function setAdminThemeIcon() {
+      const isDark = document.body.classList.contains("dark");
+      if (themeBtnAdmin) themeBtnAdmin.textContent = isDark ? "☀️" : "🌙";
+    }
+
+    window.toggleThemeAdmin = function() {
+      document.body.classList.toggle("dark");
+      const isDark = document.body.classList.contains("dark");
+      localStorage.setItem("primecart_theme", isDark ? "dark" : "light");
+      setAdminThemeIcon();
+    };
+
+    const savedThemeGlobal = localStorage.getItem("primecart_theme");
+    if (savedThemeGlobal === "dark") document.body.classList.add("dark");
+    else if (savedThemeGlobal === "light") document.body.classList.remove("dark");
+    setAdminThemeIcon();
+
+    if (themeBtnAdmin) themeBtnAdmin.addEventListener("click", () => window.toggleThemeAdmin());
+
+    // mobile menu for admin
+    window.toggleAdminMenu = function() {
+      const navLinks = document.getElementById("navLinks");
+      navLinks.classList.toggle("active");
+    };
+    if (hamburgerAdmin) hamburgerAdmin.addEventListener("click", () => window.toggleAdminMenu());
+
+    // close menu on link click
+    document.querySelectorAll(".nav-links a").forEach(link => {
+      link.addEventListener("click", () => document.getElementById("navLinks")?.classList.remove("active"));
+    });
+
+    // initial fetch
+    fetchAndRenderAdminProducts();
+  </script>
 </body>
 </html>
