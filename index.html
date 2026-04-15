@@ -1,96 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>PrimeCart</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>PrimeCart | Modern Store</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* micro animations / extra polish (already in style.css, but ensures full consistency) */
+    .product-grid .card {
+      transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+    }
+  </style>
 </head>
-
 <body>
 
-<!-- NAV -->
-<nav class="nav">
+  <!-- premium navigation with glassmorphism effect -->
+  <nav class="nav">
+    <div class="nav-logo">
+      <span class="logo-mark">🛒</span> PrimeCart
+    </div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#" class="active-nav">Home</a></li>
+      <li><a href="admin.html">Admin Studio</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn theme-toggle" id="themeToggleBtn" aria-label="Dark/Light mode">🌙</button>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+    </div>
+  </nav>
 
-  <div class="nav-logo">🛒 PrimeCart</div>
+  <!-- hero with modern gradient -->
+  <section class="hero">
+    <div class="hero-badge">✨ new season arrival</div>
+    <h1>Shop Smart. <span class="accent-text">Buy Better.</span></h1>
+    <p>Minimalist e‑commerce powered by Supabase — lightning fast & artistic.</p>
+    <div class="hero-cta">
+      <button class="btn-primary" id="exploreBtn">Explore collection →</button>
+    </div>
+  </section>
 
-  <ul class="nav-links" id="navLinks">
-    <li><a href="#">Home</a></li>
-    <li><a href="admin.html">Admin</a></li>
-  </ul>
+  <!-- product showcase -->
+  <section class="grid-section">
+    <div class="section-header">
+      <div class="section-label">Curated for you</div>
+      <div class="section-line"></div>
+    </div>
+    <div id="productGrid" class="product-grid">
+      <!-- dynamic cards injected -->
+      <div class="loader-shimmer">Loading timeless pieces...</div>
+    </div>
+  </section>
 
-  <div class="nav-actions">
-    <button class="icon-btn" onclick="toggleTheme()">🌙</button>
-    <button class="hamburger" onclick="toggleMenu()">☰</button>
-  </div>
+  <footer class="footer">
+    <p>© 2025 PrimeCart — minimalist aesthetics, powerful backend.</p>
+  </footer>
 
-</nav>
+  <script type="module">
+    import { supabase } from "./supabase.js";
 
-<!-- HERO -->
-<section class="hero">
-  <h1>Shop Smart. <span>Buy Better.</span></h1>
-  <p>Modern ecommerce powered by Supabase.</p>
-</section>
+    const grid = document.getElementById("productGrid");
+    const themeBtn = document.getElementById("themeToggleBtn");
 
-<!-- PRODUCTS -->
-<section class="grid-section">
-  <div class="section-label">Products</div>
-  <div id="productGrid" class="product-grid"></div>
-</section>
+    // ---------- LOAD PRODUCTS ----------
+    async function loadProducts() {
+      try {
+        grid.innerHTML = `<div class="loader-shimmer">✨ Curating collection...</div>`;
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .order("id", { ascending: false });
 
-<script type="module">
-import { supabase } from "./supabase.js";
+        if (error) throw error;
 
-const grid = document.getElementById("productGrid");
+        if (!data || data.length === 0) {
+          grid.innerHTML = `<div class="empty-state">🎨 No products yet — visit admin to add masterpieces.</div>`;
+          return;
+        }
 
-async function loadProducts() {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .order("id", { ascending: false });
+        grid.innerHTML = "";
+        data.forEach(product => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+            <div class="card-icon">✨</div>
+            <div class="card-title">${escapeHtml(product.name)}</div>
+            <div class="card-desc">${escapeHtml(product.description?.slice(0, 80) || "Premium quality item")}</div>
+            <div class="price-tag">₦${Number(product.price).toLocaleString()}</div>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (err) {
+        console.error(err);
+        grid.innerHTML = `<div class="error-state">⚠️ Failed to load products. Check Supabase connection.</div>`;
+      }
+    }
 
-  if (error) {
-    console.log(error);
-    return;
-  }
+    // simple XSS protection
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+        return c;
+      });
+    }
 
-  grid.innerHTML = "";
+    // ---------- DARK MODE (professional persistence) ----------
+    function setThemeIcon() {
+      const isDark = document.body.classList.contains("dark");
+      if (themeBtn) themeBtn.textContent = isDark ? "☀️" : "🌙";
+    }
 
-  data.forEach(p => {
-    grid.innerHTML += `
-      <div class="card">
-        <div class="card-title">${p.name}</div>
-        <div class="card-desc">${p.description || ""}</div>
-        <div class="price">₦${p.price}</div>
-      </div>
-    `;
-  });
-}
+    window.toggleTheme = function() {
+      document.body.classList.toggle("dark");
+      const isDark = document.body.classList.contains("dark");
+      localStorage.setItem("primecart_theme", isDark ? "dark" : "light");
+      setThemeIcon();
+    };
 
-loadProducts();
+    // load saved theme
+    const savedTheme = localStorage.getItem("primecart_theme");
+    if (savedTheme === "dark") {
+      document.body.classList.add("dark");
+    } else if (savedTheme === "light") {
+      document.body.classList.remove("dark");
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      // optional: follow system but we respect manual first
+    }
+    setThemeIcon();
 
-/* MENU */
-window.toggleMenu = function () {
-  document.getElementById("navLinks").classList.toggle("active");
-};
+    if (themeBtn) themeBtn.addEventListener("click", () => window.toggleTheme());
 
-/* THEME */
-window.toggleTheme = function () {
-  document.body.classList.toggle("dark");
-  localStorage.setItem("theme",
-    document.body.classList.contains("dark") ? "dark" : "light"
-  );
-};
+    // ---------- MOBILE MENU ----------
+    window.toggleMenu = function() {
+      const navLinks = document.getElementById("navLinks");
+      navLinks.classList.toggle("active");
+    };
+    const hamburger = document.getElementById("hamburgerBtn");
+    if (hamburger) hamburger.addEventListener("click", () => window.toggleMenu());
 
-/* LOAD THEME */
-window.onload = () => {
-  if (localStorage.getItem("theme") === "dark") {
-    document.body.classList.add("dark");
-  }
-};
-</script>
+    // smooth scroll for explore button
+    document.getElementById("exploreBtn")?.addEventListener("click", () => {
+      document.querySelector(".grid-section")?.scrollIntoView({ behavior: "smooth" });
+    });
 
+    // initial load
+    loadProducts();
+
+    // close mobile menu on link click (optional)
+    document.querySelectorAll(".nav-links a").forEach(link => {
+      link.addEventListener("click", () => {
+        document.getElementById("navLinks")?.classList.remove("active");
+      });
+    });
+  </script>
 </body>
 </html>
