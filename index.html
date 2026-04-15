@@ -7,7 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Search bar styles */
     .search-container {
       max-width: 600px;
       margin: 0 auto 2rem auto;
@@ -61,7 +60,6 @@
       <div class="section-line"></div>
     </div>
 
-    <!-- Search Bar -->
     <div class="search-container">
       <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search products by name, category, or description...">
     </div>
@@ -104,24 +102,37 @@
       return `<div class="rating-stars">${stars}<span class="rating-value">(${rating.toFixed(1)})</span></div>`;
     }
 
-    // ---------- HOT BADGE LOGIC ----------
-    function getProductBadge(avgRating, reviewCount, salesCount) {
-      // Prioritize sales for "Hot" badge, then reviews+rating
-      if (salesCount >= 10) return { text: "🔥 Hot", className: "badge-hot" };
-      if (reviewCount >= 5 && avgRating >= 4) return { text: "🔥 Hot", className: "badge-hot" };
-      if (salesCount >= 3) return { text: "⭐ Popular", className: "badge-popular" };
-      if (reviewCount >= 2 && avgRating >= 3.5) return { text: "⭐ Popular", className: "badge-popular" };
+    // ---------- REAL HOT PRODUCT LOGIC (JUMIA STYLE) ----------
+    function getProductBadge(salesCount, reviewCount, avgRating, viewsCount = 0) {
+      // Calculate trending score: sales (60%) + reviews (30%) + views (10%)
+      const salesScore = (salesCount || 0) * 3;
+      const reviewScore = (reviewCount || 0);
+      const viewScore = (viewsCount || 0) * 0.1;
+      const totalScore = salesScore + reviewScore + viewScore;
+      
+      // Best Seller: 10+ sales OR score >= 30
+      if (salesCount >= 10 || totalScore >= 30) {
+        return { text: "🏆 Best Seller", className: "badge-bestseller" };
+      }
+      // Hot: 3+ sales OR score >= 10
+      if (salesCount >= 3 || totalScore >= 10) {
+        return { text: "🔥 Hot", className: "badge-hot" };
+      }
+      // Popular: 1+ sale OR 2+ reviews with good rating
+      if (salesCount >= 1 || (reviewCount >= 2 && avgRating >= 3.5)) {
+        return { text: "⭐ Popular", className: "badge-popular" };
+      }
+      // New: default
       return { text: "🆕 New", className: "badge-new" };
     }
 
-    // Popularity score (sales + reviews + rating)
+    // Popularity score for sorting (sales, reviews, rating)
     function getPopularityScore(sales, reviews, rating) {
       return (sales * 0.6) + (reviews * 0.3) + (rating * 10);
     }
 
-    let allProducts = []; // store all products for search filtering
+    let allProducts = [];
 
-    // Render products (with optional search filter)
     function renderProducts(filterText = "") {
       const grid = document.getElementById("productGrid");
       if (!grid) return;
@@ -144,7 +155,13 @@
       grid.innerHTML = "";
       filtered.forEach(product => {
         const firstImage = (product.image_urls && product.image_urls[0]) || "https://placehold.co/600x400?text=No+Image";
-        const badge = getProductBadge(product.avgRating, product.reviewCount, product.sales_count || 0);
+        const badge = getProductBadge(
+          product.sales_count || 0, 
+          product.reviewCount, 
+          product.avgRating,
+          product.views_count || 0
+        );
+        
         const stockClass = product.stock_quantity <= 0 ? "stock-out" : (product.stock_quantity < 5 ? "stock-low" : "stock-instock");
         const stockText = product.stock_quantity <= 0 ? "Out of Stock" : (product.stock_quantity < 5 ? `Only ${product.stock_quantity} left` : `${product.stock_quantity} in stock`);
         
@@ -166,14 +183,12 @@
       });
     }
 
-    // Load products from Supabase
     async function loadProducts() {
       const grid = document.getElementById("productGrid");
       if (!grid) return;
       try {
         grid.innerHTML = `<div class="loader-shimmer">✨ Curating collection...</div>`;
 
-        // 1. Fetch all products
         const { data: products, error: productsError } = await supabase
           .from("products")
           .select("*")
@@ -184,7 +199,6 @@
           return;
         }
 
-        // 2. Fetch review counts per product
         const { data: reviewsData, error: reviewsError } = await supabase
           .from("reviews")
           .select("product_id, rating");
@@ -202,7 +216,6 @@
           });
         }
 
-        // 3. Enrich products with review data and popularity score
         const enriched = products.map(p => {
           const rev = reviewMap.get(p.id) || { count: 0, sum: 0 };
           const avgRating = rev.count > 0 ? rev.sum / rev.count : (p.rating_avg || 0);
@@ -212,11 +225,9 @@
           return { ...p, avgRating, reviewCount, score };
         });
 
-        // 4. Sort by popularity (highest first)
         enriched.sort((a, b) => b.score - a.score);
-
         allProducts = enriched;
-        renderProducts(); // initial render without search
+        renderProducts();
       } catch (err) {
         console.error("Error loading products:", err);
         grid.innerHTML = `<div class="error-state">⚠️ Failed to load products: ${err.message}</div>`;
@@ -225,7 +236,7 @@
 
     function escapeHtml(str) { return str?.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || ""; }
 
-    // ---------- THEME & MOBILE MENU ----------
+    // ---------- THEME & MOBILE ----------
     function setThemeIcon() {
       const isDark = document.body.classList.contains("dark");
       const btn = document.getElementById("themeToggleBtn");
@@ -247,7 +258,6 @@
       document.querySelector(".grid-section")?.scrollIntoView({ behavior: "smooth" });
     });
 
-    // ---------- SEARCH EVENT ----------
     const searchInput = document.getElementById("searchInput");
     if (searchInput) {
       searchInput.addEventListener("input", (e) => {
